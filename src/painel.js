@@ -14,6 +14,7 @@ import {
 } from './promoStore.js';
 import { config } from './config.js';
 import { waitForConnection, getSocket } from './whatsapp/connection.js';
+import { listGroups } from './whatsapp/groupResolver.js';
 import { logger, describeError } from './logger.js';
 import { gerarLinkAfiliadoML } from './mercadolivreBrowser.js';
 
@@ -244,6 +245,7 @@ export const PAGINA_HTML = `<!doctype html>
   <h1>Promocoes prontas 🥷</h1>
   <div class="sub">Ja com o seu link de afiliado. Copie e cole no WhatsApp Web. A lista se atualiza sozinha.</div>
   <div id="status-motor" role="status" style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px">Consultando motor original…</div>
+  <details style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px"><summary style="cursor:pointer;font-weight:600">Grupos do WhatsApp</summary><p id="grupos-motor">Abra para consultar os grupos.</p><button type="button" id="atualizar-grupos">Atualizar grupos</button></details>
   <div id="lista"></div>
 
 <script>
@@ -506,6 +508,25 @@ async function atualizarStatusMotor() {
     el.textContent = 'Não foi possível consultar o motor. Verifique a conexão.';
   }
 }
+async function atualizarGruposMotor() {
+  const el = document.getElementById('grupos-motor');
+  el.textContent = 'Consultando grupos…';
+  try {
+    const resp = await fetch(comToken('/painel/grupos'), { cache: 'no-store' });
+    const d = await resp.json();
+    if (!resp.ok) throw new Error(d.error || 'HTTP ' + resp.status);
+    el.replaceChildren();
+    if (!d.grupos.length) { el.textContent = 'Nenhum grupo encontrado.'; return; }
+    for (const g of d.grupos) {
+      const linha = document.createElement('div');
+      linha.style.padding = '7px 0';
+      linha.textContent = g.nome + ' — ' + (g.origem ? 'Origem ' : '') +
+        (g.destino ? 'Destino ' : '') + (g.admin ? '(admin)' : '');
+      el.appendChild(linha);
+    }
+  } catch (err) { el.textContent = 'Não foi possível listar grupos: ' + err.message; }
+}
+document.getElementById('atualizar-grupos').addEventListener('click', atualizarGruposMotor);
 carregar(true);
 atualizarStatusMotor();
 setInterval(carregar, 5000);
@@ -610,6 +631,28 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
       aprovacaoManual: config.groupReader.aprovacaoManual,
       destino: config.groupReader.destino,
     });
+    return true;
+  }
+
+  // Lista grupos da sessao existente sem conectar outro socket nem alterar envios.
+  if (req.method === 'GET' && url === '/painel/grupos') {
+    const sock = getSocket();
+    if (!sock) {
+      sendJson(res, 503, { ok: false, error: 'WhatsApp desconectado', grupos: [] });
+      return true;
+    }
+    listGroups(sock).then((grupos) => {
+      const origens = new Set(config.groupReader.sourceGroupNames.map((nome) => nome.trim().toLowerCase()));
+      const destinos = new Set(config.whatsapp.groupJids);
+      sendJson(res, 200, {
+        ok: true,
+        grupos: grupos.map((g) => ({
+          nome: g.name, jid: g.jid, admin: g.isAdmin,
+          origem: origens.has(g.name.trim().toLowerCase()),
+          destino: destinos.has(g.jid),
+        })),
+      });
+    }).catch((err) => sendJson(res, 500, { ok: false, error: describeError(err) }));
     return true;
   }
 
