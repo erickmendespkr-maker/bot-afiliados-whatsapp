@@ -1011,11 +1011,12 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
         const confirmados = (process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
           .split(',').map((jid) => jid.trim()).filter(Boolean);
         if (config.dryRun || process.env.AUTORIZAR_ENVIO_PAINEL !== 'sim' ||
+            process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim' ||
             confirmados.length === 0 ||
             !config.whatsapp.groupJids.every((jid) => confirmados.includes(jid))) {
           sendJson(res, 403, {
             ok: false,
-            error: 'Envio bloqueado: configure AUTORIZAR_ENVIO_PAINEL=sim e confirme todos os JIDs em GRUPOS_DESTINO_CONFIRMADOS.'
+            error: 'Envio bloqueado: exige AUTORIZAR_ENVIO_PAINEL=sim, AUTORIZAR_ENVIO_WHATSAPP=sim e todos os JIDs em GRUPOS_DESTINO_CONFIRMADOS.'
           });
           return;
         }
