@@ -751,7 +751,7 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
     }
     readJsonBody(req).then(async ({ jids }) => {
       if (!Array.isArray(jids) || jids.length < 1 || jids.length > 30 ||
-          !jids.every((jid) => typeof jid === 'string' && /^\\d+@g\\.us$/.test(jid)) ||
+          !jids.every((jid) => typeof jid === 'string' && /^\d+@g\.us$/.test(jid)) ||
           new Set(jids).size !== jids.length) {
         sendJson(res, 400, { ok: false, error: 'Selecione de 1 a 30 grupos válidos, sem repetições.' });
         return;
