@@ -5,6 +5,7 @@ import makeWASocket, {
 } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import { logger } from '../logger.js';
+import { setLatestQr } from './webQr.js';
 
 // Configuravel via WHATSAPP_AUTH_DIR - em servidores na nuvem (Railway),
 // isso aponta pro Volume persistente (senao a sessao do WhatsApp se perde a
@@ -74,11 +75,13 @@ async function startSession({ onQr }) {
 
     if (connection === 'open') {
       logger.info('WhatsApp conectado.');
+      setLatestQr(null);
       notifyReady(sock);
     }
 
     if (connection === 'close') {
       currentSocket = null;
+      setLatestQr(null);
 
       // sock.end() sem erro (fechamento intencional, ex: depois de mandar
       // uma mensagem manual) nao deve tentar reconectar - so uma queda de
