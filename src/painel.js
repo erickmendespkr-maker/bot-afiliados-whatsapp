@@ -894,14 +894,8 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
               soAdminPodePostar: meta.announce === true,
               grupoTravado: meta.restrict === true,
               meuStatusNoGrupo: eu ? eu.admin || 'membro comum' : 'NAO ENCONTRADO NA LISTA',
-              // Dados crus, so pra debug manual se a comparacao acima falhar
-              // por causa de LID vs numero de telefone:
-              _debug_meuUser: { id: sock.user?.id, lid: sock.user?.lid, name: sock.user?.name },
-              _debug_participantes: meta.participants?.map((p) => ({
-                id: p.id,
-                lid: p.lid,
-                admin: p.admin,
-              })),
+              // Nao devolver IDs ou dados pessoais dos participantes via HTTP.
+              // O diagnostico exibe apenas metadados agregados e o status do bot.
             });
           } catch (err) {
             resultado.push({ jid, erro: describeError(err) });
