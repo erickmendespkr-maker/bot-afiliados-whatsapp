@@ -8,7 +8,7 @@ export async function sendDealMessage(groupJid, { text, imageUrl }) {
   const confirmados = new Set((process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
     .split(',').map((jid) => jid.trim()).filter(Boolean));
   if (process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim' ||
-      !/^\\d+@g\\.us$/.test(String(groupJid)) ||
+      !/^\d+@g\.us$/.test(String(groupJid)) ||
       !confirmados.has(groupJid)) {
     logger.warn('Envio WhatsApp bloqueado: autorizacao global ou grupo confirmado ausente.');
     return false;
