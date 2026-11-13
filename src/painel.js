@@ -13,6 +13,7 @@ import {
   definirImagem,
 } from './promoStore.js';
 import { config } from './config.js';
+import { estaPausado, definirPausa } from './operationControl.js';
 import { waitForConnection, getSocket } from './whatsapp/connection.js';
 import { listGroups } from './whatsapp/groupResolver.js';
 import { setEnvValues } from './envFile.js';
@@ -250,6 +251,7 @@ export const PAGINA_HTML = `<!doctype html>
   <details style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px"><summary style="cursor:pointer;font-weight:600">Conectar WhatsApp pelo QR Code</summary><p>Abra WhatsApp → Aparelhos conectados → Conectar aparelho.</p><div id="qr-whatsapp" role="status">Aguardando QR…</div></details>
   <div id="status-motor" role="status" style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px">Consultando motor original…</div>
   <details style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px"><summary style="cursor:pointer;font-weight:600">Grupos do WhatsApp</summary><p id="grupos-motor">Abra para consultar os grupos.</p><button type="button" id="atualizar-grupos">Atualizar grupos</button> <button type="button" id="salvar-destinos">Salvar destinos</button> <button type="button" id="salvar-origens">Salvar origens</button><p id="resultado-destinos" role="status"></p></details>
+  <section style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px"><strong>Controle operacional</strong><p id="estado-pausa">Consultando…</p><button type="button" id="pausar-motor">Pausar publicações</button> <button type="button" id="retomar-motor">Retomar operação</button></section>
   <div id="lista"></div>
 
 <script>
@@ -498,12 +500,23 @@ async function carregar(forcar) {
   } catch {}
 }
 
+async function alterarPausa(pausado) {
+  try {
+    const resp = await fetch(comToken('/painel/operacao'), {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pausado})});
+    const d = await resp.json();
+    if (!resp.ok) throw new Error(d.error || 'HTTP ' + resp.status);
+    atualizarStatusMotor();
+  } catch (err) { document.getElementById('estado-pausa').textContent = 'Falha: ' + err.message; }
+}
+document.getElementById('pausar-motor').onclick = () => alterarPausa(true);
+document.getElementById('retomar-motor').onclick = () => alterarPausa(false);
 async function atualizarStatusMotor() {
   const el = document.getElementById('status-motor');
   try {
     const resp = await fetch(comToken('/painel/status'), { cache: 'no-store' });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const d = await resp.json();
+    document.getElementById('estado-pausa').textContent = d.pausado ? 'Pausado — envios bloqueados' : 'Em operação — autorizações de envio ainda são obrigatórias';
     el.textContent = 'WhatsApp: ' + (d.whatsappConectado ? 'conectado' : 'desconectado') +
       ' | Origens: ' + d.gruposOrigem + ' | Destinos: ' + d.gruposDestino +
       ' | Busca automática: ' + (d.buscaAutomatica ? 'ligada' : 'desligada') +
@@ -712,10 +725,20 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
     return true;
   }
 
+  if (req.method === 'POST' && url === '/painel/operacao') {
+    readJsonBody(req).then(({ pausado }) => {
+      if (typeof pausado !== 'boolean') { sendJson(res, 400, { ok:false, error:'pausado deve ser booleano' }); return; }
+      definirPausa(pausado);
+      sendJson(res, 200, { ok:true, pausado:estaPausado() });
+    }).catch(() => sendJson(res, 400, {ok:false,error:'JSON invalido'}));
+    return true;
+  }
+
   if (req.method === 'GET' && url === '/painel/status') {
     sendJson(res, 200, {
       ok: true,
       whatsappConectado: Boolean(getSocket()),
+      pausado: estaPausado(),
       gruposOrigem: config.groupReader.sourceGroupNames.length,
       gruposDestino: config.whatsapp.groupJids.length,
       buscaAutomatica: config.behavior.buscaAutomaticaAtiva,
@@ -1008,6 +1031,7 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
           return;
         }
 
+        if (estaPausado()) { sendJson(res, 409, {ok:false,error:'Operacao pausada'}); return; }
         const confirmados = (process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
           .split(',').map((jid) => jid.trim()).filter(Boolean);
         if (config.dryRun || process.env.AUTORIZAR_ENVIO_PAINEL !== 'sim' ||
