@@ -640,6 +640,10 @@ export function autorizado(req) {
 // Trata as rotas do painel. Devolve true se a requisicao era do painel (e ja
 // foi respondida), false se e' de outra parte do servidor local.
 export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
+  // QR, grupos e historico sao dados privados: nunca permitir cache em proxies ou navegadores.
+  res.setHeader('Cache-Control', 'no-store, private');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
   const url = req.url.split('?')[0];
   const queryString = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
 
