@@ -16,6 +16,8 @@ import { config } from './config.js';
 import { waitForConnection, getSocket } from './whatsapp/connection.js';
 import { listGroups } from './whatsapp/groupResolver.js';
 import { setEnvValues } from './envFile.js';
+import QRCode from 'qrcode';
+import { getLatestQr } from './whatsapp/webQr.js';
 import { logger, describeError } from './logger.js';
 import { gerarLinkAfiliadoML } from './mercadolivreBrowser.js';
 
@@ -245,6 +247,7 @@ export const PAGINA_HTML = `<!doctype html>
 <body>
   <h1>Promocoes prontas 🥷</h1>
   <div class="sub">Ja com o seu link de afiliado. Copie e cole no WhatsApp Web. A lista se atualiza sozinha.</div>
+  <details style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px"><summary style="cursor:pointer;font-weight:600">Conectar WhatsApp pelo QR Code</summary><p>Abra WhatsApp → Aparelhos conectados → Conectar aparelho.</p><div id="qr-whatsapp" role="status">Aguardando QR…</div></details>
   <div id="status-motor" role="status" style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px">Consultando motor original…</div>
   <details style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px"><summary style="cursor:pointer;font-weight:600">Grupos do WhatsApp</summary><p id="grupos-motor">Abra para consultar os grupos.</p><button type="button" id="atualizar-grupos">Atualizar grupos</button> <button type="button" id="salvar-destinos">Salvar destinos</button><p id="resultado-destinos" role="status"></p></details>
   <div id="lista"></div>
@@ -549,8 +552,30 @@ document.getElementById('salvar-destinos').addEventListener('click', async () =>
     atualizarStatusMotor();
   } catch (err) { el.textContent = 'Falha: ' + err.message; }
 });
+async function atualizarQrWhatsapp() {
+  const el = document.getElementById('qr-whatsapp');
+  try {
+    const resp = await fetch(comToken('/painel/qr'), { cache: 'no-store' });
+    if (resp.status === 204) {
+      el.textContent = 'Sem QR pendente. Se já conectou, confira o status acima.';
+      return;
+    }
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const svg = await resp.text();
+    // SVG gerado pelo servidor com biblioteca QRCode; nao incluir HTML arbitrario.
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const img = document.createElement('img');
+    img.alt = 'QR Code para conectar WhatsApp'; img.width = 260; img.height = 260;
+    img.onload = () => URL.revokeObjectURL(url);
+    img.src = url;
+    el.replaceChildren(img);
+  } catch (err) { el.textContent = 'QR indisponível: ' + err.message; }
+}
 carregar(true);
 atualizarStatusMotor();
+atualizarQrWhatsapp();
+setInterval(atualizarQrWhatsapp, 15000);
 setInterval(carregar, 5000);
 setInterval(atualizarStatusMotor, 10000);
 </script>
@@ -643,6 +668,24 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
   }
 
   // Estado real do motor existente; protegido pela mesma senha do painel.
+  if (req.method === 'GET' && url === '/painel/qr') {
+    const qr = getLatestQr();
+    if (!qr || getSocket()) {
+      res.writeHead(204, { 'Cache-Control': 'no-store' });
+      res.end();
+      return true;
+    }
+    QRCode.toString(qr, { type: 'svg', margin: 2, width: 260 }).then((svg) => {
+      res.writeHead(200, {
+        'Content-Type': 'image/svg+xml; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff',
+      });
+      res.end(svg);
+    }).catch((err) => sendJson(res, 500, { ok: false, error: 'Falha ao gerar QR' }));
+    return true;
+  }
+
   if (req.method === 'GET' && url === '/painel/status') {
     sendJson(res, 200, {
       ok: true,
