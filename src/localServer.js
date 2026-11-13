@@ -161,7 +161,7 @@ export function pararTunel() {
 // janela - agora dentro do proprio processo do bot, uma janela so. Nao trava
 // nada se falhar (sem internet pro Cloudflare, por exemplo): so avisa no log
 // e o painel continua funcionando normal no PC/Wi-Fi de casa.
-function iniciarTunelAutomatico(port, tokenQuery) {
+function iniciarTunelAutomatico(port) {
   logger.info('Painel: abrindo tunel do Cloudflare (acesso fora de casa)...');
   try {
     tunelAtivo = Tunnel.quick(`http://127.0.0.1:${port}`);
@@ -171,7 +171,7 @@ function iniciarTunelAutomatico(port, tokenQuery) {
   }
 
   tunelAtivo.once('url', (url) => {
-    logger.info(`PAINEL FORA DE CASA (dados moveis): ${url}/painel${tokenQuery}`);
+    logger.info(`PAINEL FORA DE CASA (dados moveis): ${url}/painel (informe o token na tela de login)`);
   });
   tunelAtivo.on('error', (err) => {
     logger.warn(`Painel: erro no tunel automatico (${describeError(err)}) - o painel local/rede continua funcionando normal.`);
@@ -230,8 +230,7 @@ export function startLocalServer() {
 
   server.listen(port, endereco, () => {
     logger.info(`Servidor da extensao ativo em http://127.0.0.1:${port}`);
-    const t = config.painel.token ? `?t=${config.painel.token}` : '';
-    logger.info(`PAINEL DAS PROMOCOES (neste PC): http://127.0.0.1:${port}/painel${t}`);
+    logger.info(`PAINEL DAS PROMOCOES (neste PC): http://127.0.0.1:${port}/painel`);
 
     if (config.painel.naRede) {
       if (!config.painel.token) {
@@ -241,7 +240,7 @@ export function startLocalServer() {
         );
       }
       for (const ip of ipsDaRede()) {
-        logger.info(`PAINEL NO CELULAR (mesmo Wi-Fi): http://${ip}:${port}/painel${t}`);
+        logger.info(`PAINEL NO CELULAR (mesmo Wi-Fi): http://${ip}:${port}/painel`);
       }
 
       if (config.painel.tunelAutomatico) {
@@ -251,7 +250,7 @@ export function startLocalServer() {
               'sem senha configurada (ficaria aberto pra qualquer um). Preencha PAINEL_TOKEN no .env.'
           );
         } else {
-          iniciarTunelAutomatico(port, t);
+          iniciarTunelAutomatico(port);
         }
       }
     }
