@@ -18,7 +18,8 @@
     "testar-telegram": "node scripts/testar-telegram.js",
     "tunel": "cloudflared tunnel --url http://localhost:4545",
     "start": "node index.js",
-    "dry-run": "node index.js --dry-run"
+    "dry-run": "node index.js --dry-run",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^7.0.0-rc13",
