@@ -33,7 +33,9 @@ async function main() {
   // ex: Railway) - no seu PC normal isso nao muda nada. Ver bootstrapStorage.js.
   semearArmazenamentoPersistente();
 
-  validateConfig();
+  // Deixe o painel/QR disponivel mesmo antes de configurar afiliados e grupos.
+  // A validacao completa acontece apos conectar, antes de qualquer processamento.
+  if (config.dryRun) validateConfig();
 
   if (config.dryRun) {
     logger.info('Modo TESTE ativo: nada sera enviado de verdade pro WhatsApp.');
@@ -56,6 +58,7 @@ async function main() {
     // funciona imediatamente, sem depender do agendador.
     // Le os grupos de origem em tempo real (substitui o script Python
     // separado) - baseado em evento, nao precisa esperar ciclo nenhum.
+    validateConfig();
     startGroupReader();
   }
 
