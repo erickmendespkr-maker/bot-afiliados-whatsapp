@@ -105,6 +105,20 @@ async function handlePost(req, res) {
     return;
   }
 
+  // Publicacao pela extensao exige habilitacao explicita e confirmacao dos JIDs.
+  // O token do painel autentica o operador, mas nao autoriza disparos por si so.
+  const confirmados = (process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
+    .split(',').map((jid) => jid.trim()).filter(Boolean);
+  if (config.dryRun || process.env.AUTORIZAR_ENVIO_EXTENSAO !== 'sim' ||
+      confirmados.length === 0 ||
+      !config.whatsapp.groupJids.every((jid) => confirmados.includes(jid))) {
+    sendJson(res, 403, {
+      ok: false,
+      error: 'Envio bloqueado: configure AUTORIZAR_ENVIO_EXTENSAO=sim e GRUPOS_DESTINO_CONFIRMADOS com todos os destinos autorizados.'
+    });
+    return;
+  }
+
   try {
     await waitForConnection();
     const ok = await sendDealToGroups(config.whatsapp.groupJids, { text: message, imageUrl: imageUrl || undefined });
