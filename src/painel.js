@@ -15,6 +15,7 @@ import {
 import { config } from './config.js';
 import { waitForConnection, getSocket } from './whatsapp/connection.js';
 import { listGroups } from './whatsapp/groupResolver.js';
+import { setEnvValues } from './envFile.js';
 import { logger, describeError } from './logger.js';
 import { gerarLinkAfiliadoML } from './mercadolivreBrowser.js';
 
@@ -245,7 +246,7 @@ export const PAGINA_HTML = `<!doctype html>
   <h1>Promocoes prontas 🥷</h1>
   <div class="sub">Ja com o seu link de afiliado. Copie e cole no WhatsApp Web. A lista se atualiza sozinha.</div>
   <div id="status-motor" role="status" style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px">Consultando motor original…</div>
-  <details style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px"><summary style="cursor:pointer;font-weight:600">Grupos do WhatsApp</summary><p id="grupos-motor">Abra para consultar os grupos.</p><button type="button" id="atualizar-grupos">Atualizar grupos</button></details>
+  <details style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px"><summary style="cursor:pointer;font-weight:600">Grupos do WhatsApp</summary><p id="grupos-motor">Abra para consultar os grupos.</p><button type="button" id="atualizar-grupos">Atualizar grupos</button> <button type="button" id="salvar-destinos">Salvar destinos</button><p id="resultado-destinos" role="status"></p></details>
   <div id="lista"></div>
 
 <script>
@@ -518,15 +519,36 @@ async function atualizarGruposMotor() {
     el.replaceChildren();
     if (!d.grupos.length) { el.textContent = 'Nenhum grupo encontrado.'; return; }
     for (const g of d.grupos) {
-      const linha = document.createElement('div');
+      const linha = document.createElement('label');
+      linha.style.display = 'block';
+      const caixa = document.createElement('input');
+      caixa.type = 'checkbox'; caixa.value = g.jid; caixa.checked = g.destino;
+      caixa.className = 'grupo-destino';
+      linha.appendChild(caixa);
       linha.style.padding = '7px 0';
-      linha.textContent = g.nome + ' — ' + (g.origem ? 'Origem ' : '') +
-        (g.destino ? 'Destino ' : '') + (g.admin ? '(admin)' : '');
+      linha.appendChild(document.createTextNode(' ' + g.nome + ' — ' + (g.origem ? 'Origem ' : '') +
+        (g.admin ? '(admin)' : '')));
       el.appendChild(linha);
     }
   } catch (err) { el.textContent = 'Não foi possível listar grupos: ' + err.message; }
 }
 document.getElementById('atualizar-grupos').addEventListener('click', atualizarGruposMotor);
+document.getElementById('salvar-destinos').addEventListener('click', async () => {
+  const el = document.getElementById('resultado-destinos');
+  const jids = Array.from(document.querySelectorAll('.grupo-destino:checked'), x => x.value);
+  if (!jids.length) { el.textContent = 'Selecione pelo menos um grupo de destino.'; return; }
+  el.textContent = 'Salvando…';
+  try {
+    const resp = await fetch(comToken('/painel/destinos'), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jids })
+    });
+    const d = await resp.json();
+    if (!resp.ok) throw new Error(d.error || 'HTTP ' + resp.status);
+    el.textContent = 'Destinos salvos: ' + d.quantidade + '. Alteração aplicada ao motor.';
+    atualizarStatusMotor();
+  } catch (err) { el.textContent = 'Falha: ' + err.message; }
+});
 carregar(true);
 atualizarStatusMotor();
 setInterval(carregar, 5000);
@@ -652,6 +674,31 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
           destino: destinos.has(g.jid),
         })),
       });
+    }).catch((err) => sendJson(res, 500, { ok: false, error: describeError(err) }));
+    return true;
+  }
+
+  if (req.method === 'POST' && url === '/painel/destinos') {
+    const sock = getSocket();
+    if (!sock) {
+      sendJson(res, 503, { ok: false, error: 'Conecte o WhatsApp antes de escolher destinos.' });
+      return true;
+    }
+    readJsonBody(req).then(async ({ jids }) => {
+      if (!Array.isArray(jids) || jids.length < 1 || jids.length > 30 ||
+          !jids.every((jid) => typeof jid === 'string' && /^\\d+@g\\.us$/.test(jid)) ||
+          new Set(jids).size !== jids.length) {
+        sendJson(res, 400, { ok: false, error: 'Selecione de 1 a 30 grupos válidos, sem repetições.' });
+        return;
+      }
+      const disponiveis = new Set((await listGroups(sock)).map((g) => g.jid));
+      if (!jids.every((jid) => disponiveis.has(jid))) {
+        sendJson(res, 400, { ok: false, error: 'Há grupos que não pertencem à conta conectada.' });
+        return;
+      }
+      setEnvValues({ WHATSAPP_GROUP_JIDS: jids.join(',') });
+      config.whatsapp.groupJids.splice(0, config.whatsapp.groupJids.length, ...jids);
+      sendJson(res, 200, { ok: true, quantidade: jids.length });
     }).catch((err) => sendJson(res, 500, { ok: false, error: describeError(err) }));
     return true;
   }
