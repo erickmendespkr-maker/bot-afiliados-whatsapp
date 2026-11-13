@@ -24,19 +24,33 @@ function buildAffiliateLink(source, productUrl) {
 
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
-    let body = '';
+    const limite = 1_000_000;
+    let tamanho = 0;
+    const partes = [];
+    let encerrado = false;
     req.on('data', (chunk) => {
-      body += chunk;
-      if (body.length > 1_000_000) req.destroy();
+      if (encerrado) return;
+      tamanho += chunk.length;
+      if (tamanho > limite) {
+        encerrado = true;
+        reject(Object.assign(new Error('JSON excede o limite de 1 MB'), { statusCode: 413 }));
+        // Nao destruir o socket: o handler consegue devolver HTTP 413.
+        req.resume();
+        return;
+      }
+      partes.push(chunk);
     });
     req.on('end', () => {
+      if (encerrado) return;
       try {
-        resolve(body ? JSON.parse(body) : {});
+        resolve(partes.length ? JSON.parse(Buffer.concat(partes).toString('utf8')) : {});
       } catch {
-        reject(new Error('JSON invalido'));
+        reject(Object.assign(new Error('JSON invalido'), { statusCode: 400 }));
       }
     });
-    req.on('error', reject);
+    req.on('error', (err) => {
+      if (!encerrado) reject(err);
+    });
   });
 }
 
@@ -52,7 +66,7 @@ async function handlePost(req, res) {
   try {
     payload = await readJsonBody(req);
   } catch (err) {
-    sendJson(res, 400, { ok: false, error: err.message });
+    sendJson(res, err.statusCode || 400, { ok: false, error: err.message });
     return;
   }
 
