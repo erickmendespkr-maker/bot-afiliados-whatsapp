@@ -13,7 +13,7 @@ import {
   definirImagem,
 } from './promoStore.js';
 import { config } from './config.js';
-import { waitForConnection } from './whatsapp/connection.js';
+import { waitForConnection, getSocket } from './whatsapp/connection.js';
 import { logger, describeError } from './logger.js';
 import { gerarLinkAfiliadoML } from './mercadolivreBrowser.js';
 
@@ -243,6 +243,7 @@ export const PAGINA_HTML = `<!doctype html>
 <body>
   <h1>Promocoes prontas 🥷</h1>
   <div class="sub">Ja com o seu link de afiliado. Copie e cole no WhatsApp Web. A lista se atualiza sozinha.</div>
+  <div id="status-motor" role="status" style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px">Consultando motor original…</div>
   <div id="lista"></div>
 
 <script>
@@ -491,8 +492,24 @@ async function carregar(forcar) {
   } catch {}
 }
 
+async function atualizarStatusMotor() {
+  const el = document.getElementById('status-motor');
+  try {
+    const resp = await fetch(comToken('/painel/status'), { cache: 'no-store' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const d = await resp.json();
+    el.textContent = 'WhatsApp: ' + (d.whatsappConectado ? 'conectado' : 'desconectado') +
+      ' | Origens: ' + d.gruposOrigem + ' | Destinos: ' + d.gruposDestino +
+      ' | Busca automática: ' + (d.buscaAutomatica ? 'ligada' : 'desligada') +
+      ' | Aprovação manual: ' + (d.aprovacaoManual ? 'sim' : 'não');
+  } catch {
+    el.textContent = 'Não foi possível consultar o motor. Verifique a conexão.';
+  }
+}
 carregar(true);
+atualizarStatusMotor();
 setInterval(carregar, 5000);
+setInterval(atualizarStatusMotor, 10000);
 </script>
 </body>
 </html>`;
@@ -579,6 +596,20 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
   if (req.method === 'GET' && (url === '/painel' || url === '/painel/')) {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(PAGINA_HTML);
+    return true;
+  }
+
+  // Estado real do motor existente; protegido pela mesma senha do painel.
+  if (req.method === 'GET' && url === '/painel/status') {
+    sendJson(res, 200, {
+      ok: true,
+      whatsappConectado: Boolean(getSocket()),
+      gruposOrigem: config.groupReader.sourceGroupNames.length,
+      gruposDestino: config.whatsapp.groupJids.length,
+      buscaAutomatica: config.behavior.buscaAutomaticaAtiva,
+      aprovacaoManual: config.groupReader.aprovacaoManual,
+      destino: config.groupReader.destino,
+    });
     return true;
   }
 
