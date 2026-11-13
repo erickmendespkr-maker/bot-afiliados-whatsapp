@@ -47,6 +47,9 @@ test('painel de teste: rotas públicas de leitura e escrita bloqueada', async t 
   assert.equal(original.status, 200);
   assert.match(await original.text(), /html/i);
 
+  const session = await fetch(base + '/api/admin/session');
+  assert.equal(session.status, 401);
+  assert.equal((await session.json()).writesEnabled, false);
   const lista = await fetch(base + '/painel/lista');
   assert.equal(lista.status, 200);
   assert.deepEqual((await lista.json()).promocoes, []);
