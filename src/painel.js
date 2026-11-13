@@ -252,6 +252,7 @@ export const PAGINA_HTML = `<!doctype html>
   <div id="status-motor" role="status" style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px">Consultando motor original…</div>
   <details style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px"><summary style="cursor:pointer;font-weight:600">Grupos do WhatsApp</summary><p id="grupos-motor">Abra para consultar os grupos.</p><button type="button" id="atualizar-grupos">Atualizar grupos</button> <button type="button" id="salvar-destinos">Salvar destinos</button> <button type="button" id="salvar-origens">Salvar origens</button><p id="resultado-destinos" role="status"></p></details>
   <section style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px"><strong>Controle operacional</strong><p id="estado-pausa">Consultando…</p><button type="button" id="pausar-motor">Pausar publicações</button> <button type="button" id="retomar-motor">Retomar operação</button></section>
+  <details style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px"><summary style="cursor:pointer;font-weight:600">Credenciais de afiliados</summary><p>Valores existentes nunca são exibidos. Deixe vazio para manter o valor atual. Salve por HTTPS; as alterações serão aplicadas após reiniciar o motor.</p><form id="form-afiliados"><label>Shopee App ID <input name="SHOPEE_APP_ID" autocomplete="off"></label><label>Shopee App Secret <input name="SHOPEE_APP_SECRET" type="password" autocomplete="new-password"></label><label>Link afiliado Mercado Livre <input name="ML_SAMPLE_AFFILIATE_LINK" autocomplete="off"></label><label>ML Client ID <input name="ML_CLIENT_ID" autocomplete="off"></label><label>ML Client Secret <input name="ML_CLIENT_SECRET" type="password" autocomplete="new-password"></label><label>ML Refresh Token <input name="ML_REFRESH_TOKEN" type="password" autocomplete="new-password"></label><label>Amazon Associate Tag <input name="AMAZON_ASSOCIATE_TAG" autocomplete="off"></label><label>Amazon Client ID <input name="AMAZON_CREATORS_CLIENT_ID" autocomplete="off"></label><label>Amazon Client Secret <input name="AMAZON_CREATORS_CLIENT_SECRET" type="password" autocomplete="new-password"></label><button type="submit">Salvar credenciais</button></form><p id="estado-afiliados" role="status"></p></details>
   <div id="lista"></div>
 
 <script>
@@ -606,6 +607,20 @@ async function atualizarQrWhatsapp() {
     el.replaceChildren(img);
   } catch (err) { el.textContent = 'QR indisponível: ' + err.message; }
 }
+document.getElementById('form-afiliados').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const status = document.getElementById('estado-afiliados');
+  const valores = Object.fromEntries([...new FormData(form)].filter(([,v]) => String(v).trim()).map(([k,v]) => [k,String(v).trim()]));
+  if (!Object.keys(valores).length) { status.textContent = 'Nenhuma alteração informada.'; return; }
+  status.textContent = 'Salvando...';
+  try {
+    const resp = await fetch(comToken('/painel/afiliados'), {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(valores)});
+    const dados = await resp.json();
+    status.textContent = dados.ok ? 'Configuração salva. Reinicie o motor para aplicar. Nenhuma publicação foi autorizada.' : 'Erro: ' + dados.error;
+    if (dados.ok) form.reset();
+  } catch (err) { status.textContent = 'Erro: ' + err.message; }
+});
 carregar(true);
 atualizarStatusMotor();
 atualizarQrWhatsapp();
@@ -731,6 +746,34 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
       definirPausa(pausado);
       sendJson(res, 200, { ok:true, pausado:estaPausado() });
     }).catch(() => sendJson(res, 400, {ok:false,error:'JSON invalido'}));
+    return true;
+  }
+
+  // Configuracao de afiliados: nunca devolver credenciais na resposta.
+  // Alteracoes persistidas em .env so entram em vigor apos reiniciar o processo.
+  if (req.method === 'POST' && url === '/painel/afiliados') {
+    const permitidas = new Set([
+      'SHOPEE_APP_ID','SHOPEE_APP_SECRET','ML_SAMPLE_AFFILIATE_LINK',
+      'ML_CLIENT_ID','ML_CLIENT_SECRET','ML_REFRESH_TOKEN',
+      'AMAZON_ASSOCIATE_TAG','AMAZON_CREATORS_CLIENT_ID','AMAZON_CREATORS_CLIENT_SECRET'
+    ]);
+    readJsonBody(req).then((valores) => {
+      if (!valores || typeof valores !== 'object' || Array.isArray(valores)) {
+        sendJson(res, 400, { ok:false, error:'Objeto JSON obrigatorio' }); return;
+      }
+      const entradas = Object.entries(valores);
+      if (!entradas.length || entradas.length > permitidas.size ||
+          !entradas.every(([k,v]) => permitidas.has(k) && typeof v === 'string' &&
+            v.length > 0 && v.length <= 2048 && !/[\\r\\n\\0]/.test(v))) {
+        sendJson(res, 400, { ok:false, error:'Campos invalidos ou valores fora do limite' }); return;
+      }
+      try {
+        setEnvValues(Object.fromEntries(entradas));
+        sendJson(res, 200, { ok:true, quantidade:entradas.length, reinicioNecessario:true });
+      } catch {
+        sendJson(res, 500, { ok:false, error:'Falha ao salvar configuracao' });
+      }
+    }).catch(() => sendJson(res, 400, { ok:false, error:'JSON invalido' }));
     return true;
   }
 
