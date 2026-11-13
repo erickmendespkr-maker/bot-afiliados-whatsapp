@@ -764,7 +764,7 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
       const entradas = Object.entries(valores);
       if (!entradas.length || entradas.length > permitidas.size ||
           !entradas.every(([k,v]) => permitidas.has(k) && typeof v === 'string' &&
-            v.length > 0 && v.length <= 2048 && !/[\\r\\n\\0]/.test(v))) {
+            v.length > 0 && v.length <= 2048 && !/[\r\n\0]/.test(v))) {
         sendJson(res, 400, { ok:false, error:'Campos invalidos ou valores fora do limite' }); return;
       }
       try {
