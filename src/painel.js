@@ -856,10 +856,10 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
   if (req.method === 'POST' && url === '/painel/debug-teste-privado') {
     // Diagnostico tambem e envio real: requer autorizacao independente do login.
     // Nao habilitar por padrao nem por simples acesso ao painel.
-    if (config.dryRun || process.env.AUTORIZAR_TESTE_PRIVADO !== 'sim') {
+    if (estaPausado() || config.dryRun || process.env.AUTORIZAR_TESTE_PRIVADO !== 'sim') {
       sendJson(res, 403, {
         ok: false,
-        error: 'Teste privado bloqueado. Exige modo real e AUTORIZAR_TESTE_PRIVADO=sim.'
+        error: 'Teste privado bloqueado. Exige operacao retomada, modo real e AUTORIZAR_TESTE_PRIVADO=sim.'
       });
       return true;
     }
@@ -876,6 +876,7 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
           return;
         }
         const jid = `${numero}@s.whatsapp.net`;
+        if (estaPausado()) { sendJson(res, 409, { ok: false, error: 'Operacao pausada' }); return; }
         const resultado = await sock.sendMessage(jid, {
           text:
             '🤖 Teste do bot Oferta Ninja - se voce recebeu esta mensagem, ' +
@@ -1050,6 +1051,7 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
         let algumOk = false;
 
         for (const jid of config.whatsapp.groupJids) {
+          if (estaPausado()) break; // Revalidar apos espera da conexao e entre destinos.
           try {
             // Le a imagem do disco na hora do envio (nao guardamos buffer em
             // memoria - o painel pode ficar aberto por horas).
