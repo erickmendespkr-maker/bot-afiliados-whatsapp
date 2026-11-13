@@ -50,6 +50,12 @@ test('painel de teste: rotas públicas de leitura e escrita bloqueada', async t 
   const session = await fetch(base + '/api/admin/session');
   assert.equal(session.status, 401);
   assert.equal((await session.json()).writesEnabled, false);
+  const configDenied = await fetch(base + '/api/admin/config');
+  assert.equal(configDenied.status, 401);
+  const configWrite = await fetch(base + '/api/admin/config', { method: 'POST' });
+  assert.equal(configWrite.status, 405);
+  const sessionWrite = await fetch(base + '/api/admin/session', { method: 'POST' });
+  assert.equal(sessionWrite.status, 405);
   const lista = await fetch(base + '/painel/lista');
   assert.equal(lista.status, 200);
   assert.deepEqual((await lista.json()).promocoes, []);
