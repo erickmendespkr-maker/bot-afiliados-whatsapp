@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { networkInterfaces } from 'node:os';
 import { Tunnel } from 'cloudflared';
 import { config } from './config.js';
+import { estaPausado } from './operationControl.js';
 import { logger, describeError } from './logger.js';
 import { waitForConnection } from './whatsapp/connection.js';
 import { sendDealToGroups } from './whatsapp/sender.js';
@@ -121,6 +122,11 @@ async function handlePost(req, res) {
 
   try {
     await waitForConnection();
+    // A operacao pode ter sido pausada enquanto a conexao era aguardada.
+    if (estaPausado()) {
+      sendJson(res, 409, { ok: false, error: 'Operacao pausada: envio pela extensao bloqueado.' });
+      return;
+    }
     const ok = await sendDealToGroups(config.whatsapp.groupJids, { text: message, imageUrl: imageUrl || undefined });
     if (ok) {
       logger.info(`Extensao: postado "${title}" (${source})`);
