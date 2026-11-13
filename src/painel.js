@@ -826,10 +826,14 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
   // pessoal (PY_MEU_NUMERO), no privado (nao no grupo) - serve pra saber se o
   // problema de "enviei mas ninguem ve" e' especifico do grupo (chave de
   // criptografia desatualizada so' daquele grupo) ou da sessao toda.
-  if (req.method === 'GET' && url === '/painel/debug-teste-privado') {
+  if (req.method === 'POST' && url === '/painel/debug-teste-privado') {
     (async () => {
       try {
-        const sock = await waitForConnection();
+        const sock = getSocket();
+        if (!sock) {
+          sendJson(res, 503, { ok: false, error: 'WhatsApp desconectado' });
+          return;
+        }
         const numero = (config.groupReader.meuNumero || '').replace(/\D/g, '');
         if (!numero) {
           sendJson(res, 400, { ok: false, error: 'PY_MEU_NUMERO nao configurado' });
@@ -855,7 +859,11 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
   if (req.method === 'GET' && url === '/painel/debug-grupo') {
     (async () => {
       try {
-        const sock = await waitForConnection();
+        const sock = getSocket();
+        if (!sock) {
+          sendJson(res, 503, { ok: false, error: 'WhatsApp desconectado' });
+          return;
+        }
         const meuJidBare = (sock.user?.id || '').split(':')[0];
         const meuLidBare = (sock.user?.lid || '').split(':')[0];
         const resultado = [];
