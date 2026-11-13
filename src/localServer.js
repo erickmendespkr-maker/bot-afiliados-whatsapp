@@ -7,7 +7,7 @@ import { waitForConnection } from './whatsapp/connection.js';
 import { sendDealToGroups } from './whatsapp/sender.js';
 import { extractAffiliateParams, buildAffiliateLink as buildMlLink } from './mercadolivreLink.js';
 import { buildAffiliateLink as buildAmazonLink } from './amazonLink.js';
-import { tratarRotaDoPainel } from './painel.js';
+import { tratarRotaDoPainel, autorizado } from './painel.js';
 
 function buildAffiliateLink(source, productUrl) {
   if (source === 'mercadolivre') {
@@ -43,7 +43,6 @@ function readJsonBody(req) {
 function sendJson(res, status, data) {
   res.writeHead(status, {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
   });
   res.end(JSON.stringify(data));
 }
@@ -162,16 +161,17 @@ export function startLocalServer() {
 
   const server = createServer((req, res) => {
     if (req.method === 'OPTIONS') {
-      res.writeHead(204, {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      });
+      // A extensão local pode enviar requisições, mas nunca liberamos CORS global na nuvem.
+      res.writeHead(204, { 'Allow': 'GET, POST, OPTIONS' });
       res.end();
       return;
     }
 
-    if (req.method === 'POST' && req.url === '/post') {
+    if (req.method === 'POST' && new URL(req.url, 'http://localhost').pathname === '/post') {
+      if (!autorizado(req)) {
+        sendJson(res, 401, { ok: false, error: 'Token do painel obrigatório para publicar ofertas.' });
+        return;
+      }
       handlePost(req, res);
       return;
     }
