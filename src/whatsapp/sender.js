@@ -2,6 +2,17 @@ import { waitForConnection } from './connection.js';
 import { logger } from '../logger.js';
 
 export async function sendDealMessage(groupJid, { text, imageUrl }) {
+  // Ultima barreira compartilhada por agendador, leitor de grupos e painel.
+  // Nunca confiar somente na autorizacao da rota HTTP: processos internos
+  // tambem chamam este sender. Exigir opt-in e JID explicitamente confirmado.
+  const confirmados = new Set((process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
+    .split(',').map((jid) => jid.trim()).filter(Boolean));
+  if (process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim' ||
+      !/^\\d+@g\\.us$/.test(String(groupJid)) ||
+      !confirmados.has(groupJid)) {
+    logger.warn('Envio WhatsApp bloqueado: autorizacao global ou grupo confirmado ausente.');
+    return false;
+  }
   const sock = await waitForConnection();
 
   const payload = imageUrl
