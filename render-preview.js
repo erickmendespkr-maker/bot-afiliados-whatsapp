@@ -109,7 +109,12 @@ const send = (res,status,type,body) => {res.writeHead(status,{'Content-Type':typ
 createServer((req,res)=>{
   const path=new URL(req.url||'/','http://localhost').pathname;
   if(req.method==='GET'&&path==='/health')return send(res,200,'application/json',JSON.stringify({ok:true,mode:'admin-preview',whatsapp:false,writesEnabled:false,adminAuthConfigured:tokenConfigured}));
-  if(path==='/api/admin/session')return send(res,authorized(req)?200:401,'application/json',JSON.stringify({ok:authorized(req),mode:'read-only',writesEnabled:false}));
+  if(path==='/api/admin/session')return send(res,req.method==='GET'?(authorized(req)?200:401):405,'application/json',JSON.stringify({ok:req.method==='GET'&&authorized(req),mode:'read-only',writesEnabled:false}));
+  if(path==='/api/admin/config') {
+    if(req.method!=='GET')return send(res,405,'application/json',JSON.stringify({ok:false,error:'Método não permitido'}));
+    if(!authorized(req))return send(res,401,'application/json',JSON.stringify({ok:false,error:'Autenticação necessária'}));
+    return send(res,200,'application/json',JSON.stringify({ok:true,readOnly:true,config:{timezone:'America/Sao_Paulo',start:'09:00',end:'22:00',minimumDiscount:20,template:'completo',automaticSending:false},persistence:'not-configured'}));
+  }
   if(req.method==='GET'&&(path==='/'||path==='/painel'||path==='/admin'))return send(res,200,'text/html; charset=utf-8',html);
   if(req.method==='GET'&&path==='/original')return send(res,200,'text/html; charset=utf-8',PAGINA_HTML);
   if(req.method==='GET'&&path==='/painel/lista')return send(res,200,'application/json',JSON.stringify({ok:true,promocoes:[],modoTeste:true}));
