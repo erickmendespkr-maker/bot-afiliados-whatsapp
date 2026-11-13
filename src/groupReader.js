@@ -430,7 +430,7 @@ async function postarNoWhatsapp(sock, texto, imagemBuffer) {
     return false;
   }
   for (const jid of config.whatsapp.groupJids) {
-    if (!/^\\d+@g\\.us$/.test(String(jid)) || !confirmados.has(jid)) {
+    if (!/^\d+@g\.us$/.test(String(jid)) || !confirmados.has(jid)) {
       logger.warn('Leitor de grupos: destino nao confirmado; envio bloqueado.');
       continue;
     }
