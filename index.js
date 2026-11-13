@@ -8,6 +8,7 @@ import { startLocalServer, pararTunel } from './src/localServer.js';
 import { startGroupReader } from './src/groupReader.js';
 import { fecharNavegadorML } from './src/mercadolivreBrowser.js';
 import { semearArmazenamentoPersistente } from './src/bootstrapStorage.js';
+import { setLatestQr } from './src/whatsapp/webQr.js';
 
 // Corrige o "fetch failed" que aparecia toda hora no log (Telegram, busca de
 // foto, redirecionamento de link curto - qualquer fetch()) mesmo com a
@@ -41,8 +42,11 @@ async function main() {
     // celular), o Baileys pede um QR code novo aqui - sem isso, o QR seria
     // gerado mas nunca mostrado, e o programa ficaria parado sem nenhum
     // aviso (foi o que aconteceu antes de adicionar esse "onQr").
+    // O painel precisa estar acessivel ANTES da conexao para mostrar o QR no navegador.
+    startLocalServer();
     await connectWhatsApp({
       onQr: (qr) => {
+        setLatestQr(qr);
         logger.warn('Sessao do WhatsApp expirada/invalida - escaneie o QR code abaixo com o celular:');
         qrcodeTerminal.generate(qr, { small: true });
       },
@@ -50,7 +54,6 @@ async function main() {
     // Liga o servidor da extensao logo apos conectar, antes do primeiro
     // ciclo de busca (que pode levar um tempo) - assim a extensao ja
     // funciona imediatamente, sem depender do agendador.
-    startLocalServer();
     // Le os grupos de origem em tempo real (substitui o script Python
     // separado) - baseado em evento, nao precisa esperar ciclo nenhum.
     startGroupReader();
