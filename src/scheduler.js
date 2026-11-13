@@ -1,4 +1,5 @@
 import cron from 'node-cron';
+import { estaPausado } from './operationControl.js';
 import { config } from './config.js';
 import { logger } from './logger.js';
 import { wasRecentlyPosted, markAsPosted } from './dedupe.js';
@@ -36,6 +37,7 @@ async function processSource(source) {
   }
 
   for (const deal of toPost) {
+    if (estaPausado()) { logger.info('Agendador pausado: ofertas restantes aguardam proximo ciclo.'); break; }
     const text = formatDealMessage(deal);
 
     if (config.dryRun) {
@@ -58,6 +60,7 @@ async function processSource(source) {
 }
 
 export async function runPollCycle() {
+  if (estaPausado()) { logger.info('Agendador pausado: ciclo ignorado.'); return; }
   logger.info('Iniciando ciclo de busca de ofertas...');
   for (const source of SOURCES) {
     await processSource(source);
