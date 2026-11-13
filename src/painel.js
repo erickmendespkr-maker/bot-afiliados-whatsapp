@@ -249,7 +249,7 @@ export const PAGINA_HTML = `<!doctype html>
   <div class="sub">Ja com o seu link de afiliado. Copie e cole no WhatsApp Web. A lista se atualiza sozinha.</div>
   <details style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px"><summary style="cursor:pointer;font-weight:600">Conectar WhatsApp pelo QR Code</summary><p>Abra WhatsApp → Aparelhos conectados → Conectar aparelho.</p><div id="qr-whatsapp" role="status">Aguardando QR…</div></details>
   <div id="status-motor" role="status" style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px">Consultando motor original…</div>
-  <details style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px"><summary style="cursor:pointer;font-weight:600">Grupos do WhatsApp</summary><p id="grupos-motor">Abra para consultar os grupos.</p><button type="button" id="atualizar-grupos">Atualizar grupos</button> <button type="button" id="salvar-destinos">Salvar destinos</button><p id="resultado-destinos" role="status"></p></details>
+  <details style="padding:12px;border:1px solid #888;border-radius:10px;margin-bottom:14px"><summary style="cursor:pointer;font-weight:600">Grupos do WhatsApp</summary><p id="grupos-motor">Abra para consultar os grupos.</p><button type="button" id="atualizar-grupos">Atualizar grupos</button> <button type="button" id="salvar-destinos">Salvar destinos</button> <button type="button" id="salvar-origens">Salvar origens</button><p id="resultado-destinos" role="status"></p></details>
   <div id="lista"></div>
 
 <script>
@@ -528,6 +528,11 @@ async function atualizarGruposMotor() {
       caixa.type = 'checkbox'; caixa.value = g.jid; caixa.checked = g.destino;
       caixa.className = 'grupo-destino';
       linha.appendChild(caixa);
+      const origem = document.createElement('input');
+      origem.type = 'checkbox'; origem.value = g.jid; origem.checked = g.origem;
+      origem.className = 'grupo-origem';
+      linha.appendChild(document.createTextNode(' Origem '));
+      linha.appendChild(origem);
       linha.style.padding = '7px 0';
       linha.appendChild(document.createTextNode(' ' + g.nome + ' — ' + (g.origem ? 'Origem ' : '') +
         (g.admin ? '(admin)' : '')));
@@ -536,6 +541,22 @@ async function atualizarGruposMotor() {
   } catch (err) { el.textContent = 'Não foi possível listar grupos: ' + err.message; }
 }
 document.getElementById('atualizar-grupos').addEventListener('click', atualizarGruposMotor);
+document.getElementById('salvar-origens').addEventListener('click', async () => {
+  const el = document.getElementById('resultado-destinos');
+  const jids = Array.from(document.querySelectorAll('.grupo-origem:checked'), x => x.value);
+  if (!jids.length) { el.textContent = 'Selecione pelo menos um grupo de origem.'; return; }
+  el.textContent = 'Salvando origens…';
+  try {
+    const resp = await fetch(comToken('/painel/origens'), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jids })
+    });
+    const d = await resp.json();
+    if (!resp.ok) throw new Error(d.error || 'HTTP ' + resp.status);
+    el.textContent = 'Origens salvas: ' + d.quantidade + '. Reinicie o motor para ativar a nova escuta.';
+    atualizarStatusMotor();
+  } catch (err) { el.textContent = 'Falha: ' + err.message; }
+});
 document.getElementById('salvar-destinos').addEventListener('click', async () => {
   const el = document.getElementById('resultado-destinos');
   const jids = Array.from(document.querySelectorAll('.grupo-destino:checked'), x => x.value);
@@ -718,6 +739,37 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
           destino: destinos.has(g.jid),
         })),
       });
+    }).catch((err) => sendJson(res, 500, { ok: false, error: describeError(err) }));
+    return true;
+  }
+
+  if (req.method === 'POST' && url === '/painel/origens') {
+    const sock = getSocket();
+    if (!sock) {
+      sendJson(res, 503, { ok: false, error: 'Conecte o WhatsApp antes de escolher origens.' });
+      return true;
+    }
+    readJsonBody(req).then(async ({ jids }) => {
+      if (!Array.isArray(jids) || jids.length < 1 || jids.length > 30 ||
+          !jids.every((jid) => typeof jid === 'string' && /^\\d+@g\\.us$/.test(jid)) ||
+          new Set(jids).size !== jids.length) {
+        sendJson(res, 400, { ok: false, error: 'Selecione de 1 a 30 grupos válidos, sem repetições.' });
+        return;
+      }
+      const grupos = await listGroups(sock);
+      const porJid = new Map(grupos.map((g) => [g.jid, g.name]));
+      if (!jids.every((jid) => porJid.has(jid))) {
+        sendJson(res, 400, { ok: false, error: 'Há grupos que não pertencem à conta conectada.' });
+        return;
+      }
+      const nomes = jids.map((jid) => porJid.get(jid));
+      if (new Set(nomes.map((n) => n.trim().toLowerCase())).size !== nomes.length) {
+        sendJson(res, 400, { ok: false, error: 'Existem grupos com nomes iguais; configuração por nome seria ambígua.' });
+        return;
+      }
+      setEnvValues({ GRUPOS_ORIGEM: nomes.join(',') });
+      config.groupReader.sourceGroupNames.splice(0, config.groupReader.sourceGroupNames.length, ...nomes);
+      sendJson(res, 200, { ok: true, quantidade: nomes.length, reinicioNecessario: true });
     }).catch((err) => sendJson(res, 500, { ok: false, error: describeError(err) }));
     return true;
   }
