@@ -827,6 +827,15 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
   // problema de "enviei mas ninguem ve" e' especifico do grupo (chave de
   // criptografia desatualizada so' daquele grupo) ou da sessao toda.
   if (req.method === 'POST' && url === '/painel/debug-teste-privado') {
+    // Diagnostico tambem e envio real: requer autorizacao independente do login.
+    // Nao habilitar por padrao nem por simples acesso ao painel.
+    if (config.dryRun || process.env.AUTORIZAR_TESTE_PRIVADO !== 'sim') {
+      sendJson(res, 403, {
+        ok: false,
+        error: 'Teste privado bloqueado. Exige modo real e AUTORIZAR_TESTE_PRIVADO=sim.'
+      });
+      return true;
+    }
     (async () => {
       try {
         const sock = getSocket();
