@@ -40,6 +40,7 @@ async function processSource(source) {
 
     if (config.dryRun) {
       logger.info(`[TESTE] Postaria em ${deal.source}:\n${text}\n`);
+      // Simulacoes nao devem consumir a janela de deduplicacao.
     } else {
       const ok = await sendDealToGroups(config.whatsapp.groupJids, {
         text,
@@ -47,10 +48,11 @@ async function processSource(source) {
       });
       if (ok) {
         logger.info(`${source.name}: postado "${deal.title}"`);
+        markAsPosted(deal.source, deal.productId);
+      } else {
+        logger.warn(`${source.name}: envio nao confirmado para "${deal.title}"; oferta permanece elegivel para nova tentativa.`);
       }
     }
-
-    markAsPosted(deal.source, deal.productId);
     await sleep(config.behavior.delayBetweenPostsSeconds * 1000);
   }
 }
