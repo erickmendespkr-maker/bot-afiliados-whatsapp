@@ -627,7 +627,7 @@ function ehLocal(req) {
 // Senha de acesso: exigida quando a requisicao vem de OUTRO aparelho da rede
 // (ex: seu celular). Aceita por "?t=SENHA" na URL ou pelo cabecalho
 // "x-painel-token" (usado pelas chamadas internas da pagina).
-function autorizado(req) {
+export function autorizado(req) {
   // Nunca dispensar senha em nuvem, rede ou tunel: proxies podem chegar via loopback.
   if (!process.env.PORT && !config.painel.naRede && !config.painel.tunelAutomatico && ehLocal(req)) return true;
   const esperado = config.painel.token;
