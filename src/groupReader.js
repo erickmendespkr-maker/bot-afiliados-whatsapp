@@ -420,7 +420,20 @@ function montarMensagemAprovacao(id, grupoOrigem, textoFinal, aviso) {
 // espacamento entre os posts) - NUNCA direto do fluxo principal.
 async function postarNoWhatsapp(sock, texto, imagemBuffer) {
   let ok = false;
+  // Este caminho envia diretamente pelo socket (imagem em Buffer) e nao passa
+  // pelo sender compartilhado. Aplicar aqui a mesma trava global, sem
+  // modificar a conversao, a fila nem a logica de envio existente.
+  const confirmados = new Set((process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
+    .split(',').map((jid) => jid.trim()).filter(Boolean));
+  if (config.dryRun || process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim') {
+    logger.warn('Leitor de grupos: envio WhatsApp bloqueado (sem autorizacao global).');
+    return false;
+  }
   for (const jid of config.whatsapp.groupJids) {
+    if (!/^\\d+@g\\.us$/.test(String(jid)) || !confirmados.has(jid)) {
+      logger.warn('Leitor de grupos: destino nao confirmado; envio bloqueado.');
+      continue;
+    }
     try {
       if (imagemBuffer) {
         await sock.sendMessage(jid, { image: imagemBuffer, caption: texto });
