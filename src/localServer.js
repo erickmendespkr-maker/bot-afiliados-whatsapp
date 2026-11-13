@@ -195,7 +195,10 @@ export function startLocalServer() {
 
   // Por padrao so aceita conexoes do proprio PC. Com PAINEL_NA_REDE=sim,
   // aceita tambem os aparelhos da mesma rede (pra abrir o painel no celular).
-  const endereco = config.painel.naRede ? '0.0.0.0' : '127.0.0.1';
+  // Render exige escuta em 0.0.0.0 para encaminhar requisicoes ao container.
+  // A autenticacao continua obrigatoria para acessos nao locais.
+  const hospedado = Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID);
+  const endereco = (config.painel.naRede || hospedado) ? '0.0.0.0' : '127.0.0.1';
 
   server.listen(port, endereco, () => {
     logger.info(`Servidor da extensao ativo em http://127.0.0.1:${port}`);
