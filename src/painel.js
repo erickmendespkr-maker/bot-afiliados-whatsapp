@@ -1081,8 +1081,20 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
     }
     const extensao = caminho.split('.').pop().toLowerCase();
     const tipo = TIPO_POR_EXTENSAO[extensao] || 'image/jpeg';
+    let imagem;
+    try {
+      imagem = readFileSync(caminho);
+    } catch (err) {
+      if (err?.code === 'ENOENT' || err?.code === 'ENOTDIR') {
+        sendJson(res, 404, { ok: false, error: 'Imagem nao encontrada.' });
+      } else {
+        logger.error(`Painel: falha ao ler imagem - ${describeError(err)}`);
+        sendJson(res, 500, { ok: false, error: 'Falha interna ao carregar imagem.' });
+      }
+      return true;
+    }
     res.writeHead(200, { 'Content-Type': tipo, 'Cache-Control': 'max-age=86400' });
-    res.end(readFileSync(caminho));
+    res.end(imagem);
     return true;
   }
 
