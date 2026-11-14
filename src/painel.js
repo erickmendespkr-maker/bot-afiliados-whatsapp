@@ -887,6 +887,29 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
     return true;
   }
 
+  // Simulacao segura de uma oferta ja processada pelo motor original.
+  // Apenas consulta SQLite: nao conecta, nao envia e nao marca como enviada.
+  if (req.method === 'GET' && url === '/painel/simular-oferta') {
+    const id = new URL(req.url, 'http://localhost').searchParams.get('id');
+    if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
+      sendJson(res, 400, { ok: false, error: 'ID de promocao invalido' });
+      return true;
+    }
+    const promocao = listarPromocoes().find((p) => p.id === id);
+    if (!promocao) {
+      sendJson(res, 404, { ok: false, error: 'Promocao nao encontrada entre as 60 mais recentes' });
+      return true;
+    }
+    sendJson(res, 200, {
+      ok: true, simulacao: true, enviado: false,
+      oferta: { id: promocao.id, texto: textoDaPromocao(id), temImagem: promocao.temImagem,
+        origem: promocao.origem, aviso: promocao.aviso },
+      destinosConfigurados: config.whatsapp.groupJids.length,
+      observacao: 'Previa local sem qualquer envio ou alteracao no historico.'
+    });
+    return true;
+  }
+
   if (req.method === 'GET' && url === '/painel/lista') {
     sendJson(res, 200, { promocoes: listarPromocoes() });
     return true;
