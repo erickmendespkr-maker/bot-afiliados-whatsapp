@@ -1234,7 +1234,18 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
   if (req.method === 'POST' && url === '/painel/marcar') {
     readJsonBody(req)
       .then(({ id, enviada }) => {
-        marcarComoEnviada(id, Boolean(enviada));
+        // Boolean('false') seria true: exigir booleano real evita historico incorreto.
+        if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id) ||
+            typeof enviada !== 'boolean') {
+          sendJson(res, 400, { ok: false, error: 'ID ou estado de envio invalido' });
+          return;
+        }
+        const promocao = listarPromocoes().find((item) => item.id === id);
+        if (!promocao) {
+          sendJson(res, 404, { ok: false, error: 'Promocao nao encontrada' });
+          return;
+        }
+        marcarComoEnviada(id, enviada);
         sendJson(res, 200, { ok: true });
       })
       .catch((err) => sendJson(res, 400, { ok: false, error: err.message }));
