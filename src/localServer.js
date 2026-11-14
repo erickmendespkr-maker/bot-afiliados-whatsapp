@@ -206,6 +206,20 @@ export function startLocalServer() {
         sendJson(res, 401, { ok: false, error: 'Token do painel obrigatório para publicar ofertas.' });
         return;
       }
+      // A extensao e clientes locais podem omitir Origin, mas uma pagina
+      // de outra origem nao pode acionar publicacoes pelo navegador.
+      if (req.headers.origin) {
+        let mesmaOrigem = false;
+        try {
+          const origem = new URL(req.headers.origin);
+          mesmaOrigem = (origem.protocol === 'http:' || origem.protocol === 'https:') &&
+            origem.host === req.headers.host;
+        } catch { /* Origin invalido: bloquear. */ }
+        if (!mesmaOrigem) {
+          sendJson(res, 403, { ok: false, error: 'Origem nao autorizada' });
+          return;
+        }
+      }
       handlePost(req, res);
       return;
     }
