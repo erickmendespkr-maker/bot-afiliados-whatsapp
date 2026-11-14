@@ -1178,7 +1178,8 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
 
         const caminho = caminhoDaImagem(id);
         const sock = await waitForConnection();
-        let algumOk = false;
+        let enviados = 0;
+        const totalDestinos = config.whatsapp.groupJids.length;
 
         // A autorizacao e os destinos podem mudar enquanto aguardamos a conexao.
         // Revalidar antes de CADA envio, inclusive apos uma espera prolongada.
@@ -1198,19 +1199,27 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
               ? { image: readFileSync(caminho), caption: texto }
               : { text: texto };
             await sock.sendMessage(jid, payload);
-            algumOk = true;
+            enviados += 1;
           } catch (err) {
             logger.error(`Painel: falha ao enviar pro WhatsApp - ${describeError(err)}`);
           }
         }
 
-        if (algumOk) {
+        if (enviados === totalDestinos) {
           marcarComoEnviada(id, true);
-          logger.info('Painel: promocao enviada pro grupo do WhatsApp (a seu comando).');
-          sendJson(res, 200, { ok: true });
+          logger.info('Painel: promocao enviada a todos os destinos confirmados.');
+          sendJson(res, 200, { ok: true, enviados, totalDestinos });
+        } else if (enviados > 0) {
+          // Nao declarar concluida uma publicacao parcial. Uma nova tentativa
+          // manual pode duplicar nos destinos que ja receberam: informar isso.
+          logger.warn(`Painel: publicacao parcial (${enviados}/${totalDestinos} destinos).`);
+          sendJson(res, 207, {
+            ok: false, parcial: true, enviados, totalDestinos,
+            error: 'Publicacao parcial. Confira os grupos antes de tentar novamente para evitar duplicatas.'
+          });
         } else {
           sendJson(res, 500, {
-            ok: false,
+            ok: false, enviados, totalDestinos,
             error: 'nao consegui enviar (WhatsApp conectado? confira o terminal)',
           });
         }
