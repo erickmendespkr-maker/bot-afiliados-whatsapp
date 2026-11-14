@@ -134,6 +134,16 @@ async function handlePost(req, res) {
       sendJson(res, 409, { ok: false, error: 'Operacao pausada: envio pela extensao bloqueado.' });
       return;
     }
+    // A autorizacao e os destinos podem mudar enquanto esperamos a conexao.
+    // Revalidar imediatamente antes de delegar ao motor de envio original.
+    const destinosConfirmadosAgora = (process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
+      .split(',').map((jid) => jid.trim()).filter(Boolean);
+    if (config.dryRun || process.env.AUTORIZAR_ENVIO_EXTENSAO !== 'sim' ||
+        destinosConfirmadosAgora.length === 0 ||
+        !config.whatsapp.groupJids.every((jid) => destinosConfirmadosAgora.includes(jid))) {
+      sendJson(res, 403, { ok: false, error: 'Autorizacao de envio ou confirmacao dos destinos revogada.' });
+      return;
+    }
     const ok = await sendDealToGroups(config.whatsapp.groupJids, { text: message, imageUrl: imageUrl || undefined });
     if (ok) {
       logger.info(`Extensao: postado "${title}" (${source})`);
