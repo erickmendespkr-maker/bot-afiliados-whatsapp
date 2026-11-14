@@ -864,7 +864,10 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
           destino: destinos.has(g.jid),
         })),
       });
-    }).catch((err) => sendJson(res, 500, { ok: false, error: describeError(err) }));
+    }).catch((err) => {
+      logger.error(`Painel: falha ao listar grupos - ${describeError(err)}`);
+      sendJson(res, 500, { ok: false, error: 'Falha ao consultar grupos do WhatsApp' });
+    });
     return true;
   }
 
@@ -895,7 +898,10 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
       setEnvValues({ GRUPOS_ORIGEM: nomes.join(',') });
       config.groupReader.sourceGroupNames.splice(0, config.groupReader.sourceGroupNames.length, ...nomes);
       sendJson(res, 200, { ok: true, quantidade: nomes.length, reinicioNecessario: true });
-    }).catch((err) => sendJson(res, 500, { ok: false, error: describeError(err) }));
+    }).catch((err) => {
+      logger.error(`Painel: falha ao configurar origens - ${describeError(err)}`);
+      sendJson(res, 500, { ok: false, error: 'Falha ao configurar grupos de origem' });
+    });
     return true;
   }
 
@@ -920,7 +926,10 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
       setEnvValues({ WHATSAPP_GROUP_JIDS: jids.join(',') });
       config.whatsapp.groupJids.splice(0, config.whatsapp.groupJids.length, ...jids);
       sendJson(res, 200, { ok: true, quantidade: jids.length });
-    }).catch((err) => sendJson(res, 500, { ok: false, error: describeError(err) }));
+    }).catch((err) => {
+      logger.error(`Painel: falha ao configurar destinos - ${describeError(err)}`);
+      sendJson(res, 500, { ok: false, error: 'Falha ao configurar grupos de destino' });
+    });
     return true;
   }
 
