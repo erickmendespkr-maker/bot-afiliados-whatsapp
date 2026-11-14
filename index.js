@@ -33,12 +33,8 @@ async function main() {
   // ex: Railway) - no seu PC normal isso nao muda nada. Ver bootstrapStorage.js.
   semearArmazenamentoPersistente();
 
-  // Deixe o painel/QR disponivel mesmo antes de configurar afiliados e grupos.
-  // A validacao completa acontece apos conectar, antes de qualquer processamento.
-  if (config.dryRun) validateConfig();
-
-  // Permite inspecionar QR/status e simular ofertas sem habilitar envios reais.
-  // Em dry-run o painel e opt-in para preservar o comportamento anterior do CLI.
+  // Em dry-run o painel e opt-in. Abrir antes de validar credenciais permite
+  // configurar a instalacao inicial sem ativar envios reais.
   if (config.dryRun && process.env.PAINEL_NO_DRY_RUN === 'sim') {
     startLocalServer();
   }
@@ -75,6 +71,10 @@ async function main() {
     );
     return;
   }
+
+  // Validar apenas quando realmente for executar a coleta automatica.
+  // O painel de configuracao deve permanecer acessivel com .env incompleto.
+  if (config.dryRun) validateConfig();
 
   // roda um ciclo assim que liga, sem esperar o primeiro intervalo
   await runPollCycle();
