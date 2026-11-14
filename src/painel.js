@@ -366,6 +366,37 @@ async function enviar(id, botao) {
   }
 }
 
+// Previa autenticada da oferta ja convertida; nao publica nem altera historico.
+async function simularOferta(id, botao) {
+  botao.disabled = true;
+  try {
+    const resp = await fetch(comToken('/painel/simular-oferta?id=' + encodeURIComponent(id)), { cache: 'no-store' });
+    const dados = await resp.json();
+    if (!resp.ok || !dados.ok) throw new Error(dados.error || 'HTTP ' + resp.status);
+    const previa = dados.oferta;
+    const mensagem = 'SIMULACAO — nenhum envio realizado\\n\\n' +
+      previa.texto + '\\n\\nImagem: ' + (previa.temImagem ? 'disponivel' : 'indisponivel') +
+      '\\nDestinos configurados: ' + dados.destinosConfigurados +
+      (previa.aviso ? '\\nAviso: ' + previa.aviso : '');
+    const janela = window.open('', '_blank');
+    if (janela) {
+      const pre = janela.document.createElement('pre');
+      pre.style.whiteSpace = 'pre-wrap';
+      pre.style.fontFamily = 'system-ui, sans-serif';
+      pre.style.padding = '20px';
+      pre.textContent = mensagem;
+      janela.document.title = 'Simulacao de oferta';
+      janela.document.body.appendChild(pre);
+    } else {
+      window.alert(mensagem);
+    }
+  } catch (err) {
+    window.alert('Falha na simulacao: ' + err.message);
+  } finally {
+    botao.disabled = false;
+  }
+}
+
 async function marcar(id, enviada) {
   await fetch(comToken('/painel/marcar'), {
     method: 'POST',
@@ -454,6 +485,12 @@ function desenhar(promos) {
       bEnviar.onclick = () => enviar(p.id, bEnviar);
       acoes.appendChild(bEnviar);
     }
+
+    const bSimular = document.createElement('button');
+    bSimular.className = 'b-foto';
+    bSimular.textContent = 'Simular oferta';
+    bSimular.onclick = () => simularOferta(p.id, bSimular);
+    acoes.appendChild(bSimular);
 
     const bTexto = document.createElement('button');
     bTexto.className = 'b-texto';
