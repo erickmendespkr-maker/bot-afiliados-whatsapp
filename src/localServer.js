@@ -120,6 +120,13 @@ async function handlePost(req, res) {
     return;
   }
 
+  // Falhar imediatamente se o operador pausou: nao aguardar indefinidamente
+  // a conexao WhatsApp para informar que a publicacao esta bloqueada.
+  if (estaPausado()) {
+    sendJson(res, 409, { ok: false, error: 'Operacao pausada: envio pela extensao bloqueado.' });
+    return;
+  }
+
   try {
     await waitForConnection();
     // A operacao pode ter sido pausada enquanto a conexao era aguardada.
