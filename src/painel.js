@@ -973,7 +973,8 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
         const link = await gerarLinkAfiliadoML(produtoTeste, { timeoutMs: 45000 });
         sendJson(res, 200, { ok: true, logado: true, link });
       } catch (err) {
-        sendJson(res, 200, { ok: true, logado: false, erro: describeError(err) });
+        logger.warn(`Painel: diagnostico ML falhou - ${describeError(err)}`);
+        sendJson(res, 200, { ok: true, logado: false, erro: 'Falha no diagnostico do Mercado Livre. Consulte os logs do servidor.' });
       }
     })();
     return true;
@@ -1057,12 +1058,14 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
               // O diagnostico exibe apenas metadados agregados e o status do bot.
             });
           } catch (err) {
-            resultado.push({ jid, erro: describeError(err) });
+            logger.warn(`Painel: diagnostico de grupo falhou - ${describeError(err)}`);
+            resultado.push({ jid, erro: 'Falha ao consultar metadados deste grupo.' });
           }
         }
         sendJson(res, 200, { ok: true, grupos: resultado });
       } catch (err) {
-        sendJson(res, 500, { ok: false, error: describeError(err) });
+        logger.error(`Painel: diagnostico de grupos falhou - ${describeError(err)}`);
+        sendJson(res, 500, { ok: false, error: 'Falha interna no diagnostico de grupos.' });
       }
     })();
     return true;
