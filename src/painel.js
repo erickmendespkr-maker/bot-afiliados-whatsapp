@@ -1111,8 +1111,17 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
         const sock = await waitForConnection();
         let algumOk = false;
 
+        // A autorizacao e os destinos podem mudar enquanto aguardamos a conexao.
+        // Revalidar antes de CADA envio, inclusive apos uma espera prolongada.
         for (const jid of config.whatsapp.groupJids) {
-          if (estaPausado()) break; // Revalidar apos espera da conexao e entre destinos.
+          const autorizadosAgora = new Set((process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
+            .split(',').map((valor) => valor.trim()).filter(Boolean));
+          if (estaPausado() || config.dryRun ||
+              process.env.AUTORIZAR_ENVIO_PAINEL !== 'sim' ||
+              process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim' ||
+              !config.whatsapp.groupJids.every((destino) => autorizadosAgora.has(destino))) {
+            break;
+          }
           try {
             // Le a imagem do disco na hora do envio (nao guardamos buffer em
             // memoria - o painel pode ficar aberto por horas).
