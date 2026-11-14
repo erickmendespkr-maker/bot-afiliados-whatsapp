@@ -37,6 +37,12 @@ async function main() {
   // A validacao completa acontece apos conectar, antes de qualquer processamento.
   if (config.dryRun) validateConfig();
 
+  // Permite inspecionar QR/status e simular ofertas sem habilitar envios reais.
+  // Em dry-run o painel e opt-in para preservar o comportamento anterior do CLI.
+  if (config.dryRun && process.env.PAINEL_NO_DRY_RUN === 'sim') {
+    startLocalServer();
+  }
+
   if (config.dryRun) {
     logger.info('Modo TESTE ativo: nada sera enviado de verdade pro WhatsApp.');
   } else {
