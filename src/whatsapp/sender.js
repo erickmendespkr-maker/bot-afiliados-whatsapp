@@ -20,6 +20,17 @@ export async function sendDealMessage(groupJid, { text, imageUrl }) {
   }
   const sock = await waitForConnection();
 
+  // A espera pela conexao pode durar minutos. Revalidar imediatamente antes
+  // do envio para respeitar uma pausa ou revogacao feita nesse intervalo.
+  const confirmadosAgora = new Set((process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
+    .split(',').map((jid) => jid.trim()).filter(Boolean));
+  if (estaPausado() ||
+      process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim' ||
+      !confirmadosAgora.has(groupJid)) {
+    logger.warn('Envio WhatsApp cancelado: pausa ou autorizacao alterada durante a espera.');
+    return false;
+  }
+
   const payload = imageUrl
     ? { image: { url: imageUrl }, caption: text }
     : { text };
