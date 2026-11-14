@@ -715,6 +715,24 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
     return true;
   }
 
+  // Requisicoes de escrita feitas por navegadores devem vir da mesma origem.
+  // Evita que outra pagina acione rotas autenticadas com token na URL.
+  if (req.method === 'POST' && url.startsWith('/painel/')) {
+    const origem = req.headers.origin;
+    if (origem) {
+      let origemValida = false;
+      try {
+        const parsed = new URL(origem);
+        origemValida = (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
+          parsed.host === req.headers.host;
+      } catch { /* Origem malformada ou null: rejeitar. */ }
+      if (!origemValida) {
+        sendJson(res, 403, { ok: false, error: 'Origem nao autorizada' });
+        return true;
+      }
+    }
+  }
+
   if (req.method === 'GET' && (url === '/painel' || url === '/painel/')) {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(PAGINA_HTML);
