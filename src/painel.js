@@ -1215,7 +1215,10 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
           });
         }
       })
-      .catch((err) => sendJson(res, 400, { ok: false, error: err.message }));
+      .catch((err) => {
+        logger.error(`Painel: erro inesperado na publicacao - ${describeError(err)}`);
+        sendJson(res, 500, { ok: false, error: 'Falha interna ao processar a publicacao. Consulte o log do servidor.' });
+      });
     return true;
   }
 
