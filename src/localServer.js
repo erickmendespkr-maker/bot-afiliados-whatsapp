@@ -201,6 +201,11 @@ export function startLocalServer() {
   const port = config.painel.porta;
 
   const server = createServer((req, res) => {
+    // O painel legado aceita token na query string; nao permitir que o
+    // navegador o envie como Referer nem armazene QR/sessao em cache.
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     if (req.method === 'OPTIONS') {
       // A extensão local pode enviar requisições, mas nunca liberamos CORS global na nuvem.
       res.writeHead(204, { 'Allow': 'GET, POST, OPTIONS' });
