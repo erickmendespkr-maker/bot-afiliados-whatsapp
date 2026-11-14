@@ -153,7 +153,7 @@ async function handlePost(req, res) {
     }
   } catch (err) {
     logger.error(`Extensao: erro ao enviar - ${describeError(err)}`);
-    sendJson(res, 500, { ok: false, error: err.message });
+    // Nao retornar detalhes internos do provedor/WhatsApp ao cliente HTTP.\n    // O diagnostico completo permanece apenas no log do servidor.\n    sendJson(res, 500, { ok: false, error: 'Falha interna ao processar a oferta. Consulte o log do servidor.' });
   }
 }
 
