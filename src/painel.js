@@ -1014,7 +1014,8 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
         });
         sendJson(res, 200, { ok: true, jid, messageId: resultado?.key?.id || null });
       } catch (err) {
-        sendJson(res, 500, { ok: false, error: describeError(err) });
+        logger.error(`Painel: falha no teste privado - ${describeError(err)}`);
+        sendJson(res, 500, { ok: false, error: 'Falha no teste privado. Consulte os logs do servidor.' });
       }
     })();
     return true;
@@ -1136,7 +1137,8 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
         }
         sendJson(res, 200, { ok: true });
       } catch (err) {
-        sendJson(res, 500, { ok: false, error: err.message });
+        logger.error(`Painel: falha ao salvar imagem - ${describeError(err)}`);
+        sendJson(res, 500, { ok: false, error: 'Falha ao salvar imagem. Consulte os logs do servidor.' });
       }
     });
 
