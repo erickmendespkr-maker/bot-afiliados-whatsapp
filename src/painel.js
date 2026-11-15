@@ -1110,15 +1110,20 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
     req.on('data', (pedaco) => {
       total += pedaco.length;
       if (total > LIMITE_BYTES) {
-        estourou = true;
-        req.destroy();
+        if (!estourou) {
+          estourou = true;
+          pedacos.length = 0;
+          // Responder 413 sem destruir o socket antes da resposta HTTP.
+          // Continuar drenando o corpo sem armazenar mais bytes.
+          sendJson(res, 413, { ok: false, error: 'Imagem excede o limite de 10 MB.' });
+        }
         return;
       }
       pedacos.push(pedaco);
     });
 
     req.on('end', () => {
-      if (estourou) return; // 'error' cuida de responder
+      if (estourou) return; // A resposta 413 ja foi enviada durante a leitura.
       const buffer = Buffer.concat(pedacos);
       if (!buffer.length) {
         sendJson(res, 400, { ok: false, error: 'imagem vazia' });
