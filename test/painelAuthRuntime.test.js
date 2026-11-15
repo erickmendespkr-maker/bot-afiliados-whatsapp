@@ -51,3 +51,13 @@ test('token exige correspondencia exata inclusive caracteres UTF-8 e comprimento
   assert.equal(check({ token: 'chave-ç', url: '/painel?t=' + encodeURIComponent('chave-ç') }), true);
   assert.equal(check({ token: 'chave-ç', url: '/painel?t=' + encodeURIComponent('chave-c') }), false);
 });
+
+test('nao dispensa senha em Render Service ID nem tunel automatico', () => {
+  assert.equal(check({ token: '', remoteAddress: '127.0.0.1', env: { RENDER_SERVICE_ID: 'srv-example' } }), false);
+  assert.equal(check({ token: 'segredo-longo', remoteAddress: '127.0.0.1', env: { RENDER_SERVICE_ID: 'srv-example' } }), false);
+  assert.equal(check({ token: 'segredo-longo', remoteAddress: '127.0.0.1', env: { RENDER_SERVICE_ID: 'srv-example' }, headers: { 'x-painel-token': 'segredo-longo' } }), true);
+});
+
+test('rejeita token de query diferente mesmo quando cabecalho correto', () => {
+  assert.equal(check({ url: '/painel?t=segredo-longo%20', headers: { 'x-painel-token': 'segredo-longo' } }), false);
+});
