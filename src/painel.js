@@ -942,7 +942,11 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
       }
       setEnvValues({ WHATSAPP_GROUP_JIDS: jids.join(',') });
       config.whatsapp.groupJids.splice(0, config.whatsapp.groupJids.length, ...jids);
-      sendJson(res, 200, { ok: true, quantidade: jids.length });
+      // Trocar destinos revoga a permissao temporaria da extensao, mesmo
+      // quando o novo conjunto e subconjunto dos JIDs anteriormente aprovados.
+      // Exige nova autorizacao explicita apos conferir a selecao.
+      process.env.AUTORIZAR_ENVIO_EXTENSAO = 'nao';
+      sendJson(res, 200, { ok: true, quantidade: jids.length, envioExtensaoRequerNovaAutorizacao: true });
     }).catch((err) => {
       logger.error(`Painel: falha ao configurar destinos - ${describeError(err)}`);
       sendJson(res, 500, { ok: false, error: 'Falha ao configurar grupos de destino' });
