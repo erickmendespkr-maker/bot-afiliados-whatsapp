@@ -84,6 +84,13 @@ async function main() {
     // Evita "process.exit()" logo apos chamadas de rede: no Windows isso
     // pode disparar um crash nativo do Node (bug conhecido do libuv/undici).
     // Deixando o processo terminar sozinho evita o problema.
+    // Com o painel habilitado no modo teste, manter o servidor HTTP vivo
+    // para configurar afiliados, consultar status e simular ofertas sem envios.
+    // O processo termina naturalmente quando o servidor for encerrado.
+    if (process.env.PAINEL_NO_DRY_RUN === 'sim') {
+      logger.info('Painel de teste permanece acessivel; nenhum envio real esta autorizado.');
+      return;
+    }
     process.exitCode = 0;
     return;
   }
