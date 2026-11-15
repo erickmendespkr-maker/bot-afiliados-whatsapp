@@ -846,6 +846,10 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
       ok: true,
       whatsappConectado: Boolean(getSocket()),
       pausado: estaPausado(),
+      modoTeste: config.dryRun,
+      envioExtensaoAutorizado: !config.dryRun && process.env.AUTORIZAR_ENVIO_EXTENSAO === 'sim' &&
+        config.whatsapp.groupJids.length > 0 &&
+        config.whatsapp.groupJids.every((jid) => (process.env.GRUPOS_DESTINO_CONFIRMADOS || '').split(',').map((v) => v.trim()).includes(jid)),
       gruposOrigem: config.groupReader.sourceGroupNames.length,
       gruposDestino: config.whatsapp.groupJids.length,
       buscaAutomatica: config.behavior.buscaAutomaticaAtiva,
