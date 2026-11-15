@@ -796,7 +796,12 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
   }
 
   if (req.method === 'POST' && url === '/painel/operacao') {
-    readJsonBody(req).then(({ pausado }) => {
+    readJsonBody(req).then((payload) => {
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload) || typeof payload.pausado !== 'boolean') {
+        sendJson(res, 400, { ok:false, error:'pausado deve ser booleano' });
+        return;
+      }
+      const { pausado } = payload;
       if (typeof pausado !== 'boolean') { sendJson(res, 400, { ok:false, error:'pausado deve ser booleano' }); return; }
       definirPausa(pausado);
       sendJson(res, 200, { ok:true, pausado:estaPausado() });
