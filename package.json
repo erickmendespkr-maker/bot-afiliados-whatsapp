@@ -19,7 +19,8 @@
     "tunel": "cloudflared tunnel --url http://localhost:4545",
     "start": "node index.js",
     "dry-run": "node index.js --dry-run",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "check:mvp": "node scripts/check-mvp-readiness.js"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^7.0.0-rc13",
