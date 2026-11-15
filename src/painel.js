@@ -877,7 +877,13 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
       sendJson(res, 503, { ok: false, error: 'Conecte o WhatsApp antes de escolher origens.' });
       return true;
     }
-    readJsonBody(req).then(async ({ jids }) => {
+    readJsonBody(req).then(async (payload) => {
+      // JSON null/array nao pode ser desestruturado como configuracao de grupos.
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        sendJson(res, 400, { ok: false, error: 'O corpo deve ser um objeto JSON.' });
+        return;
+      }
+      const { jids } = payload;
       if (!Array.isArray(jids) || jids.length < 1 || jids.length > 30 ||
           !jids.every((jid) => typeof jid === 'string' && /^\d+@g\.us$/.test(jid)) ||
           new Set(jids).size !== jids.length) {
@@ -911,7 +917,13 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
       sendJson(res, 503, { ok: false, error: 'Conecte o WhatsApp antes de escolher destinos.' });
       return true;
     }
-    readJsonBody(req).then(async ({ jids }) => {
+    readJsonBody(req).then(async (payload) => {
+      // JSON null/array nao pode ser desestruturado como configuracao de grupos.
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        sendJson(res, 400, { ok: false, error: 'O corpo deve ser um objeto JSON.' });
+        return;
+      }
+      const { jids } = payload;
       if (!Array.isArray(jids) || jids.length < 1 || jids.length > 30 ||
           !jids.every((jid) => typeof jid === 'string' && /^\d+@g\.us$/.test(jid)) ||
           new Set(jids).size !== jids.length) {
