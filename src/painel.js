@@ -559,7 +559,9 @@ async function atualizarStatusMotor() {
     el.textContent = 'WhatsApp: ' + (d.whatsappConectado ? 'conectado' : 'desconectado') +
       ' | Origens: ' + d.gruposOrigem + ' | Destinos: ' + d.gruposDestino +
       ' | Busca automática: ' + (d.buscaAutomatica ? 'ligada' : 'desligada') +
-      ' | Aprovação manual: ' + (d.aprovacaoManual ? 'sim' : 'não');
+      ' | Aprovação manual: ' + (d.aprovacaoManual ? 'sim' : 'não') +
+      ' | Modo: ' + (d.modoTeste ? 'SIMULAÇÃO (sem envios)' : 'real') +
+      ' | Extensão: ' + (d.envioExtensaoAutorizado ? 'destinos autorizados' : 'envio bloqueado');
   } catch {
     el.textContent = 'Não foi possível consultar o motor. Verifique a conexão.';
   }
