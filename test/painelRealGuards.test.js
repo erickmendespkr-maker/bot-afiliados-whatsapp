@@ -33,3 +33,11 @@ test('painel real e servido por localServer sem depender de render-preview', () 
   assert.match(codigo, /tratarRotaDoPainel\(req, res, sendJson, readJsonBody\)/);
   assert.doesNotMatch(codigo, /render-preview\.js/);
 });
+
+
+test('servidor captura rejeicoes inesperadas do handler async /post', () => {
+  const codigo = ler('src/localServer.js');
+  assert.match(codigo, /void handlePost\(req, res\)\.catch\(\(err\) =>/);
+  assert.match(codigo, /if \(!res\.headersSent && !res\.destroyed\)/);
+  assert.match(codigo, /else if \(!res\.writableEnded\)/);
+});
