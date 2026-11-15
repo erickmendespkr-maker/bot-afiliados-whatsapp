@@ -738,7 +738,7 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
     // Registra a tentativa - se aparecer muita no log, alguem esta fuçando o
     // endereco do tunel (a senha longa continua protegendo).
     logger.warn(
-      `Painel: acesso BLOQUEADO (senha ausente ou errada) em ${url} - origem ${
+      `Painel: acesso BLOQUEADO (senha ausente ou errada) em ${new URL(req.url, 'http://localhost').pathname} - origem ${
         req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '?'
       }`
     );
