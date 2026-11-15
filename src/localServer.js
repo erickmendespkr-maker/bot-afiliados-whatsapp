@@ -83,7 +83,7 @@ async function handlePost(req, res) {
     affiliateLink = buildAffiliateLink(source, productUrl);
   } catch (err) {
     logger.error(`Extensao: falha ao montar link - ${err.message}`);
-    sendJson(res, 400, { ok: false, error: err.message });
+    sendJson(res, 400, { ok: false, error: 'Nao foi possivel gerar o link de afiliado. Confira a configuracao da plataforma.' });
     return;
   }
 
