@@ -43,3 +43,20 @@ test('parser preserva null e arrays para validacao do handler', async () => {
   assert.equal(await parse(['null']), null);
   assert.equal(Array.isArray(await parse(['[]'])), true);
 });
+
+test('parser rejeita requisicao abortada sem aguardar end', async () => {
+  const req = new EventEmitter();
+  req.resume = () => {};
+  const pending = readJsonBody(req);
+  req.emit('data', Buffer.from('{"source":'));
+  req.emit('aborted');
+  await assert.rejects(pending, err => err.statusCode === 400);
+});
+
+test('parser rejeita erro de transporte sem aguardar end', async () => {
+  const req = new EventEmitter();
+  req.resume = () => {};
+  const pending = readJsonBody(req);
+  req.emit('error', new Error('socket reset'));
+  await assert.rejects(pending, /socket reset/);
+});
