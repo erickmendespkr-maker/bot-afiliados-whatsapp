@@ -1191,7 +1191,15 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
 
   if (req.method === 'POST' && url === '/painel/enviar') {
     readJsonBody(req)
-      .then(async ({ id }) => {
+      .then(async (payload) => {
+        // JSON null, arrays e IDs malformados nao devem chegar ao armazenamento.
+        if (!payload || typeof payload !== 'object' || Array.isArray(payload) ||
+            (typeof payload.id !== 'string' && typeof payload.id !== 'number') ||
+            !String(payload.id).trim()) {
+          sendJson(res, 400, { ok: false, error: 'id da promocao invalido' });
+          return;
+        }
+        const { id } = payload;
         const texto = textoDaPromocao(id);
         if (!texto) {
           sendJson(res, 404, { ok: false, error: 'promocao nao encontrada' });
