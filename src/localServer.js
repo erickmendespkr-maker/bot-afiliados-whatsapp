@@ -49,8 +49,15 @@ function readJsonBody(req) {
         reject(Object.assign(new Error('JSON invalido'), { statusCode: 400 }));
       }
     });
+    req.on('aborted', () => {
+      if (encerrado) return;
+      encerrado = true;
+      reject(Object.assign(new Error('Requisicao interrompida'), { statusCode: 400 }));
+    });
     req.on('error', (err) => {
-      if (!encerrado) reject(err);
+      if (encerrado) return;
+      encerrado = true;
+      reject(err);
     });
   });
 }
