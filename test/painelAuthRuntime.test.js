@@ -39,3 +39,15 @@ test('nao libera acesso remoto com segredo vazio', () => {
 test('token incorreto na query nao e substituido pelo cabecalho', () => {
   assert.equal(check({ url: '/painel?t=errado', headers: { 'x-painel-token': 'segredo-longo' } }), false);
 });
+
+test('nao confia em loopback quando o processo esta hospedado ou exposto por proxy', () => {
+  assert.equal(check({ token: '', remoteAddress: '127.0.0.1', env: { RENDER: 'true' } }), false);
+  assert.equal(check({ token: '', remoteAddress: '127.0.0.1', env: { PORT: '10000' } }), false);
+});
+
+test('token exige correspondencia exata inclusive caracteres UTF-8 e comprimento', () => {
+  assert.equal(check({ token: 'segredo-longo', url: '/painel?t=segredo-longo-extra' }), false);
+  assert.equal(check({ token: 'segredo-longo', url: '/painel?t=segredo-long' }), false);
+  assert.equal(check({ token: 'chave-ç', url: '/painel?t=' + encodeURIComponent('chave-ç') }), true);
+  assert.equal(check({ token: 'chave-ç', url: '/painel?t=' + encodeURIComponent('chave-c') }), false);
+});
