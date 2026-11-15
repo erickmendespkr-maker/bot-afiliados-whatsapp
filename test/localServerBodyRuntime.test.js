@@ -60,3 +60,17 @@ test('parser rejeita erro de transporte sem aguardar end', async () => {
   req.emit('error', new Error('socket reset'));
   await assert.rejects(pending, /socket reset/);
 });
+
+test('parser aceita exatamente 1 MB em multiplos chunks', async () => {
+  const prefix = '{"data":"';
+  const suffix = '"}';
+  const body = prefix + 'x'.repeat(1_000_000 - prefix.length - suffix.length) + suffix;
+  assert.equal(Buffer.byteLength(body), 1_000_000);
+  const parsed = await parse([body.slice(0, 500_000), body.slice(500_000)]);
+  assert.equal(parsed.data.length, 1_000_000 - prefix.length - suffix.length);
+});
+
+test('parser soma chunks para bloquear tamanho acima do limite', async () => {
+  await assert.rejects(parse(['x'.repeat(600_000), 'x'.repeat(400_001)]),
+    err => err.statusCode === 413);
+});
