@@ -4,6 +4,7 @@
 //
 // Roda dentro do mesmo servidor local que atende a extensao do navegador.
 import { readFileSync, unlinkSync } from 'node:fs';
+import { timingSafeEqual } from 'node:crypto';
 import {
   listarPromocoes,
   marcarComoEnviada,
@@ -699,7 +700,10 @@ export function autorizado(req) {
   if (!esperado) return false; // sem senha configurada, nao libera a rede
   const url = new URL(req.url, 'http://x');
   const informado = url.searchParams.get('t') || req.headers['x-painel-token'] || '';
-  return informado === esperado;
+  // Comparacao em tempo constante para evitar vazamento por tempo de resposta.
+  const recebido = Buffer.from(String(informado), 'utf8');
+  const segredo = Buffer.from(String(esperado), 'utf8');
+  return recebido.length === segredo.length && timingSafeEqual(recebido, segredo);
 }
 
 // Trata as rotas do painel. Devolve true se a requisicao era do painel (e ja
