@@ -252,7 +252,16 @@ export function startLocalServer() {
           return;
         }
       }
-      handlePost(req, res);
+      // Capturar rejeicoes inesperadas do handler async: o callback do
+      // createServer nao aguarda Promises e uma rejeicao escaparia sem tratamento.
+      void handlePost(req, res).catch((err) => {
+        logger.error(`Extensao: falha inesperada na rota /post - ${describeError(err)}`);
+        if (!res.headersSent && !res.destroyed) {
+          sendJson(res, 500, { ok: false, error: 'Falha interna ao processar a oferta.' });
+        } else if (!res.writableEnded) {
+          res.end();
+        }
+      });
       return;
     }
 
