@@ -71,6 +71,14 @@ async function handlePost(req, res) {
     return;
   }
 
+  // JSON valido tambem pode ser null, array ou numero. Nesses casos,
+  // desestruturar o corpo lancaria TypeError em uma rota async sem await,
+  // criando uma rejeicao nao tratada e potencialmente derrubando o servidor.
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    sendJson(res, 400, { ok: false, error: 'O corpo deve ser um objeto JSON.' });
+    return;
+  }
+
   const { source, productUrl, title, price, originalPrice, imageUrl, coupon } = payload;
 
   if (!source || !productUrl || !title || !price) {
