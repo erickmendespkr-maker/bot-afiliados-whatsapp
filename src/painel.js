@@ -950,12 +950,19 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
         sendJson(res, 400, { ok: false, error: 'Há grupos que não pertencem à conta conectada.' });
         return;
       }
-      setEnvValues({ WHATSAPP_GROUP_JIDS: jids.join(',') });
+      // A troca de destinos revoga TODAS as autorizacoes de publicacao,
+      // inclusive apos reiniciar o processo. Um subconjunto de grupos antes
+      // confirmados nao deve herdar permissao de envio manual ou automatico.
+      setEnvValues({
+        WHATSAPP_GROUP_JIDS: jids.join(','),
+        AUTORIZAR_ENVIO_EXTENSAO: 'nao',
+        AUTORIZAR_ENVIO_PAINEL: 'nao',
+        AUTORIZAR_ENVIO_WHATSAPP: 'nao',
+      });
       config.whatsapp.groupJids.splice(0, config.whatsapp.groupJids.length, ...jids);
-      // Trocar destinos revoga a permissao temporaria da extensao, mesmo
-      // quando o novo conjunto e subconjunto dos JIDs anteriormente aprovados.
-      // Exige nova autorizacao explicita apos conferir a selecao.
       process.env.AUTORIZAR_ENVIO_EXTENSAO = 'nao';
+      process.env.AUTORIZAR_ENVIO_PAINEL = 'nao';
+      process.env.AUTORIZAR_ENVIO_WHATSAPP = 'nao';
       sendJson(res, 200, { ok: true, quantidade: jids.length, envioExtensaoRequerNovaAutorizacao: true });
     }).catch((err) => {
       logger.error(`Painel: falha ao configurar destinos - ${describeError(err)}`);
