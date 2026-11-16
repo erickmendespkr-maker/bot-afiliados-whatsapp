@@ -3,8 +3,11 @@ import { readFileSync, existsSync } from 'node:fs';
 
 const files = ['index.js', 'src/localServer.js', 'src/painel.js', 'src/whatsapp/connection.js', 'src/whatsapp/sender.js'];
 const checks = files.map((path) => ({ item: path, ok: existsSync(path) }));
+const entrypoint = existsSync('index.js') ? readFileSync('index.js', 'utf8') : '';
 const localServer = existsSync('src/localServer.js') ? readFileSync('src/localServer.js', 'utf8') : '';
 const painel = existsSync('src/painel.js') ? readFileSync('src/painel.js', 'utf8') : '';
+checks.push({ item: 'index inicia servidor HTTP original', ok: entrypoint.includes("from './src/localServer.js'") && entrypoint.includes('startLocalServer()') });
+checks.push({ item: 'servidor importa painel real', ok: localServer.includes("from './painel.js'") && localServer.includes('tratarRotaDoPainel(req, res') });
 checks.push({ item: 'painel conectado ao servidor HTTP', ok: localServer.includes('tratarRotaDoPainel(req, res') });
 checks.push({ item: 'servidor delega envio ao motor existente', ok: localServer.includes('sendDealToGroups(') });
 checks.push({ item: 'painel possui autenticacao', ok: painel.includes('export function autorizado(req)') });
