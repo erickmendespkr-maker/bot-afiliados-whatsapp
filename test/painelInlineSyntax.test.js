@@ -7,7 +7,7 @@ import { Script } from 'node:vm';
 // Validate browser scripts separately: node --check src/painel.js alone does not
 // parse JavaScript embedded inside HTML template literals.
 const source = readFileSync(new URL('../src/painel.js', import.meta.url), 'utf8');
-const scripts = [...source.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/gi)]
+const scripts = [...source.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
   .map((match) => match[1]);
 
 test('login and dashboard inline scripts remain syntactically valid', () => {
