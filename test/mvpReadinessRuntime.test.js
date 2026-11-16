@@ -17,6 +17,8 @@ test('diagnostico offline verifica componentes sem exigir credenciais locais', (
   const result = run();
   assert.equal(result.status, 0, result.stderr + result.stdout);
   assert.match(result.stdout, /OK - painel conectado ao servidor HTTP/);
+  assert.match(result.stdout, /OK - index inicia servidor HTTP original/);
+  assert.match(result.stdout, /OK - servidor importa painel real/);
   assert.match(result.stdout, /OK - servidor delega envio ao motor existente/);
   assert.match(result.stdout, /nao comprova QR conectado/);
 });
