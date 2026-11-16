@@ -266,6 +266,13 @@ const TOKEN = (function () {
   const daUrl = new URLSearchParams(location.search).get('t');
   if (daUrl) {
     try { localStorage.setItem('painelToken', daUrl); } catch {}
+    // Remover a credencial da barra de endereco e do historico atual apos o carregamento.
+    // O servidor ainda recebe o token na requisicao inicial; login sem query exige fluxo separado.
+    try {
+      const limpa = new URL(location.href);
+      limpa.searchParams.delete('t');
+      history.replaceState(history.state, '', limpa.pathname + limpa.search + limpa.hash);
+    } catch {}
     return daUrl;
   }
   try { return localStorage.getItem('painelToken') || ''; } catch { return ''; }
