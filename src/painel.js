@@ -330,7 +330,7 @@ async function subirFoto(id, arquivo, spanTexto) {
   const textoOriginal = spanTexto.textContent;
   spanTexto.textContent = 'enviando foto...';
   try {
-    const resp = await fetchAutenticado('/painel/imagem/' + id), {
+    const resp = await fetchAutenticado('/painel/imagem/' + id, {
       method: 'POST',
       headers: { 'Content-Type': arquivo.type || 'image/jpeg' },
       body: arquivo,
@@ -363,7 +363,7 @@ async function enviar(id, botao) {
   const textoOriginal = botao.textContent;
   botao.textContent = 'Enviando...';
   try {
-    const resp = await fetchAutenticado('/painel/enviar'), {
+    const resp = await fetchAutenticado('/painel/enviar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),
@@ -415,7 +415,7 @@ async function simularOferta(id, botao) {
 }
 
 async function marcar(id, enviada) {
-  await fetchAutenticado('/painel/marcar'), {
+  await fetchAutenticado('/painel/marcar', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id, enviada }),
@@ -424,7 +424,7 @@ async function marcar(id, enviada) {
 }
 
 async function apagar(id) {
-  await fetchAutenticado('/painel/apagar'), {
+  await fetchAutenticado('/painel/apagar', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id }),
@@ -617,7 +617,7 @@ document.getElementById('salvar-origens').addEventListener('click', async () => 
   if (!jids.length) { el.textContent = 'Selecione pelo menos um grupo de origem.'; return; }
   el.textContent = 'Salvando origens…';
   try {
-    const resp = await fetchAutenticado('/painel/origens'), {
+    const resp = await fetchAutenticado('/painel/origens', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jids })
     });
@@ -633,7 +633,7 @@ document.getElementById('salvar-destinos').addEventListener('click', async () =>
   if (!jids.length) { el.textContent = 'Selecione pelo menos um grupo de destino.'; return; }
   el.textContent = 'Salvando…';
   try {
-    const resp = await fetchAutenticado('/painel/destinos'), {
+    const resp = await fetchAutenticado('/painel/destinos', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jids })
     });
