@@ -307,7 +307,7 @@ async function copiarTexto(id, texto, botao) {
 // aceita, e o WhatsApp Web cola numa boa.
 async function copiarImagem(id, botao) {
   try {
-    const resp = await fetchAutenticado('/painel/imagem/' + id));
+    const resp = await fetchAutenticado('/painel/imagem/' + id);
     const blobOriginal = await resp.blob();
     const bitmap = await createImageBitmap(blobOriginal);
     const canvas = document.createElement('canvas');
@@ -387,7 +387,7 @@ async function enviar(id, botao) {
 async function simularOferta(id, botao) {
   botao.disabled = true;
   try {
-    const resp = await fetchAutenticado('/painel/simular-oferta?id=' + encodeURIComponent(id)), { cache: 'no-store' });
+    const resp = await fetchAutenticado('/painel/simular-oferta?id=' + encodeURIComponent(id), { cache: 'no-store' });
     const dados = await resp.json();
     if (!resp.ok || !dados.ok) throw new Error(dados.error || 'HTTP ' + resp.status);
     const previa = dados.oferta;
@@ -543,7 +543,7 @@ function desenhar(promos) {
 
 async function carregar(forcar) {
   try {
-    const resp = await fetchAutenticado('/painel/lista'));
+    const resp = await fetchAutenticado('/painel/lista');
     const dados = await resp.json();
     const json = JSON.stringify(dados);
     // So redesenha se algo mudou - senao o botao que voce acabou de clicar
@@ -557,7 +557,7 @@ async function carregar(forcar) {
 
 async function alterarPausa(pausado) {
   try {
-    const resp = await fetchAutenticado('/painel/operacao'), {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pausado})});
+    const resp = await fetchAutenticado('/painel/operacao', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pausado})});
     const d = await resp.json();
     if (!resp.ok) throw new Error(d.error || 'HTTP ' + resp.status);
     atualizarStatusMotor();
@@ -568,7 +568,7 @@ document.getElementById('retomar-motor').onclick = () => alterarPausa(false);
 async function atualizarStatusMotor() {
   const el = document.getElementById('status-motor');
   try {
-    const resp = await fetchAutenticado('/painel/status'), { cache: 'no-store' });
+    const resp = await fetchAutenticado('/painel/status', { cache: 'no-store' });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const d = await resp.json();
     document.getElementById('estado-pausa').textContent = d.pausado ? 'Pausado — envios bloqueados' : 'Em operação — autorizações de envio ainda são obrigatórias';
@@ -586,7 +586,7 @@ async function atualizarGruposMotor() {
   const el = document.getElementById('grupos-motor');
   el.textContent = 'Consultando grupos…';
   try {
-    const resp = await fetchAutenticado('/painel/grupos'), { cache: 'no-store' });
+    const resp = await fetchAutenticado('/painel/grupos', { cache: 'no-store' });
     const d = await resp.json();
     if (!resp.ok) throw new Error(d.error || 'HTTP ' + resp.status);
     el.replaceChildren();
@@ -646,7 +646,7 @@ document.getElementById('salvar-destinos').addEventListener('click', async () =>
 async function atualizarQrWhatsapp() {
   const el = document.getElementById('qr-whatsapp');
   try {
-    const resp = await fetchAutenticado('/painel/qr'), { cache: 'no-store' });
+    const resp = await fetchAutenticado('/painel/qr', { cache: 'no-store' });
     if (resp.status === 204) {
       el.textContent = 'Sem QR pendente. Se já conectou, confira o status acima.';
       return;
@@ -671,7 +671,7 @@ document.getElementById('form-afiliados').addEventListener('submit', async (even
   if (!Object.keys(valores).length) { status.textContent = 'Nenhuma alteração informada.'; return; }
   status.textContent = 'Salvando...';
   try {
-    const resp = await fetchAutenticado('/painel/afiliados'), {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(valores)});
+    const resp = await fetchAutenticado('/painel/afiliados', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(valores)});
     const dados = await resp.json();
     status.textContent = dados.ok ? 'Configuração salva. Reinicie o motor para aplicar. Nenhuma publicação foi autorizada.' : 'Erro: ' + dados.error;
     if (dados.ok) form.reset();
