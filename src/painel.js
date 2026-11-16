@@ -701,7 +701,8 @@ export function autorizado(req) {
   const esperado = config.painel.token;
   if (!esperado) return false; // sem senha configurada, nao libera a rede
   const url = new URL(req.url, 'http://x');
-  const informado = url.searchParams.get('t') || req.headers['x-painel-token'] || '';
+  // Preferir o cabecalho: um token antigo na URL nao deve sobrepor a credencial atual.
+  const informado = req.headers['x-painel-token'] || url.searchParams.get('t') || '';
   // Comparacao em tempo constante para evitar vazamento por tempo de resposta.
   const recebido = Buffer.from(String(informado), 'utf8');
   const segredo = Buffer.from(String(esperado), 'utf8');
