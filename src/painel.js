@@ -1301,7 +1301,12 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
 
   if (req.method === 'POST' && url === '/painel/marcar') {
     readJsonBody(req)
-      .then(({ id, enviada }) => {
+      .then((payload) => {
+        if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+          sendJson(res, 400, { ok: false, error: 'O corpo deve ser um objeto JSON.' });
+          return;
+        }
+        const { id, enviada } = payload;
         // Boolean('false') seria true: exigir booleano real evita historico incorreto.
         if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id) ||
             typeof enviada !== 'boolean') {
@@ -1322,7 +1327,17 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
 
   if (req.method === 'POST' && url === '/painel/apagar') {
     readJsonBody(req)
-      .then(({ id }) => {
+      .then((payload) => {
+        if (!payload || typeof payload !== 'object' || Array.isArray(payload) ||
+            typeof payload.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(payload.id)) {
+          sendJson(res, 400, { ok: false, error: 'ID da promocao invalido' });
+          return;
+        }
+        const { id } = payload;
+        if (!listarPromocoes().some((item) => item.id === id)) {
+          sendJson(res, 404, { ok: false, error: 'Promocao nao encontrada' });
+          return;
+        }
         apagarPromocao(id);
         sendJson(res, 200, { ok: true });
       })
