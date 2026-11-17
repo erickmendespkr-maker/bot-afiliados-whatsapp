@@ -287,10 +287,23 @@ function fetchAutenticado(url, options = {}) {
   return fetch(url, { ...options, headers });
 }
 
-// Compatibilidade com imagens <img> (sem suporte a headers customizados).
-function comToken(u) {
-  if (!TOKEN) return u;
-  return u + (u.includes('?') ? '&' : '?') + 't=' + encodeURIComponent(TOKEN);
+// Imagens privadas sao buscadas com cabecalho, nunca com token na URL.
+const urlsDeImagem = new Set();
+async function carregarImagemPrivada(img, id) {
+  try {
+    const resp = await fetchAutenticado('/painel/imagem/' + encodeURIComponent(id), { cache: 'no-store' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const url = URL.createObjectURL(await resp.blob());
+    if (!img.isConnected) { URL.revokeObjectURL(url); return; }
+    urlsDeImagem.add(url);
+    img.src = url;
+  } catch {
+    if (img.isConnected) img.alt = 'Imagem indisponivel';
+  }
+}
+function liberarImagens() {
+  for (const url of urlsDeImagem) URL.revokeObjectURL(url);
+  urlsDeImagem.clear();
 }
 
 function formatarHora(iso) {
@@ -433,6 +446,7 @@ async function apagar(id) {
 }
 
 function desenhar(promos) {
+  liberarImagens();
   if (promos.length === 0) {
     lista.innerHTML = '<div class="vazio">Nenhuma promocao ainda.<br>Assim que o bot achar uma nos grupos, ela aparece aqui.</div>';
     return;
@@ -446,8 +460,10 @@ function desenhar(promos) {
     if (p.temImagem) {
       const img = document.createElement('img');
       img.className = 'foto';
-      img.src = comToken('/painel/imagem/' + p.id);
+      img.alt = 'Imagem da promocao';
+      img.loading = 'lazy';
       card.appendChild(img);
+      carregarImagemPrivada(img, p.id);
     } else {
       // Quadrado clicavel: toca/clica e abre o seletor de foto do aparelho
       // (galeria ou camera, no celular) pra anexar uma imagem manualmente
