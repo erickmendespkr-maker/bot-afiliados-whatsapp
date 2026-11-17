@@ -271,21 +271,9 @@ export const PAGINA_HTML = `<!doctype html>
 const lista = document.getElementById('lista');
 let ultimoJson = '';
 
-// Senha de acesso: vem na URL na primeira vez (?t=...) e fica guardada, pra
-// quando o app for aberto pelo atalho da tela inicial (que abre sem a ?t=).
-const TOKEN = (function () {
-  const daUrl = new URLSearchParams(location.search).get('t');
-  if (daUrl) {
-    try { localStorage.setItem('painelToken', daUrl); } catch {}
-    // Remover a credencial da barra de endereco e do historico atual apos o carregamento.
-    // O servidor ainda recebe o token na requisicao inicial; login sem query exige fluxo separado.
-    try {
-      const limpa = new URL(location.href);
-      limpa.searchParams.delete('t');
-      history.replaceState(history.state, '', limpa.pathname + limpa.search + limpa.hash);
-    } catch {}
-    return daUrl;
-  }
+// A senha e informada na tela de login e mantida somente neste aparelho.
+// Nunca aceitar credenciais pela URL, inclusive em acessos antigos.
+const TOKEN = (() => {
   try { return localStorage.getItem('painelToken') || ''; } catch { return ''; }
 })();
 
@@ -735,9 +723,7 @@ function ehLocal(req) {
   return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
 }
 
-// Senha de acesso: exigida quando a requisicao vem de OUTRO aparelho da rede
-// (ex: seu celular). Aceita por "?t=SENHA" na URL ou pelo cabecalho
-// "x-painel-token" (usado pelas chamadas internas da pagina).
+// Acesso remoto exige credencial no cabecalho ou sessao de leitura do painel.
 const sessoesPainel = new Map();
 export function autorizado(req) {
   // Nunca dispensar senha em nuvem, rede ou tunel: proxies podem chegar via loopback.
@@ -746,7 +732,7 @@ export function autorizado(req) {
   if (!esperado) return false; // sem senha configurada, nao libera a rede
   const url = new URL(req.url, 'http://x');
   // Preferir o cabecalho: um token antigo na URL nao deve sobrepor a credencial atual.
-  const informado = req.headers['x-painel-token'] || url.searchParams.get('t') || '';
+  const informado = req.headers['x-painel-token'] || '';
   // Sessao efemera so autoriza leitura do HTML do painel; escritas continuam exigindo cabecalho.
   if (!informado && req.method === 'GET' && url.pathname === '/painel') {
     const cookie = (req.headers.cookie || '').split(';').map(x => x.trim()).find(x => x.startsWith('painel_session='));
@@ -769,12 +755,12 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   const url = req.url.split('?')[0];
-  const queryString = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  
 
   // Abrir so o endereco (ex: https://xxx.trycloudflare.com) caia no painel
   // em vez de devolver "nao encontrado" - erro facil de cometer no celular.
   if (req.method === 'GET' && (url === '/' || url === '')) {
-    res.writeHead(302, { Location: `/painel${queryString}` });
+    res.writeHead(302, { Location: '/painel' });
     res.end();
     return true;
   }
@@ -819,7 +805,7 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
     // Se veio senha (mas errada), mostra o aviso de erro. Se nao veio senha
     // nenhuma, mostra a tela limpa (e ela tenta a senha salva no aparelho).
     const veioSenha = Boolean(
-      new URL(req.url, 'http://x').searchParams.get('t') || req.headers['x-painel-token']
+      req.headers['x-painel-token']
     );
     res.writeHead(401, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(paginaSenha(veioSenha));
