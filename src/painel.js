@@ -779,6 +779,21 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
     return true;
   }
 
+  // O login cria cookie de sessao: rejeitar tentativas cross-origin antes
+  // de autenticar, inclusive quando o navegador envia um token salvo.
+  if (req.method === 'POST' && url === '/painel/login' && req.headers.origin) {
+    let mesmaOrigem = false;
+    try {
+      const origem = new URL(req.headers.origin);
+      mesmaOrigem = (origem.protocol === 'http:' || origem.protocol === 'https:') &&
+        origem.host === req.headers.host;
+    } catch { /* Origem invalida. */ }
+    if (!mesmaOrigem) {
+      sendJson(res, 403, { ok: false, error: 'Origem nao autorizada' });
+      return true;
+    }
+  }
+
   if (req.method === 'POST' && url === '/painel/login') {
     if (!autorizado(req)) {
       sendJson(res, 401, { ok: false, error: 'Senha invalida' });
