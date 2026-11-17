@@ -131,18 +131,9 @@ const PAGINA_SENHA_BASE = `<!doctype html>
   // O servidor marca "true" aqui quando a senha enviada estava ERRADA.
   const ERROU = __ERROU__;
 
-  if (ERROU) {
-    // Apaga a senha guardada (era invalida) e mostra o aviso - sem isso a
-    // pagina tentaria entrar de novo com a mesma senha errada, em loop.
-    try { localStorage.removeItem('painelToken'); } catch {}
-    erro.style.display = 'block';
-  } else {
-    // Sem erro: se a senha ja foi salva neste aparelho, entra sozinho.
-    try {
-      const salva = localStorage.getItem('painelToken');
-      if (salva) entrar(salva);
-    } catch {}
-  }
+  // O cookie de sessao HttpOnly e suficiente para manter o login.
+  // Nunca persistir o segredo mestre em localStorage, acessivel a scripts.
+  if (ERROU) erro.style.display = 'block';
 
   async function entrar(valor) {
     try {
@@ -150,7 +141,6 @@ const PAGINA_SENHA_BASE = `<!doctype html>
       if (!resposta.ok) throw new Error('Senha invalida');
       location.replace('/painel');
     } catch {
-      try { localStorage.removeItem('painelToken'); } catch {}
       erro.style.display = 'block';
     }
   }
@@ -159,7 +149,6 @@ const PAGINA_SENHA_BASE = `<!doctype html>
     e.preventDefault();
     const valor = campo.value.trim();
     if (!valor) return;
-    try { localStorage.setItem('painelToken', valor); } catch {}
     entrar(valor);
   });
 </script>
