@@ -228,9 +228,11 @@ export function startLocalServer() {
   const port = config.painel.porta;
 
   const server = createServer((req, res) => {
-    // O painel legado aceita token na query string; nao permitir que o
-    // navegador o envie como Referer nem armazene QR/sessao em cache.
+    // Nunca permitir vazamento de dados privados do painel por Referer,
+    // cache ou incorporacao em paginas de terceiros (clickjacking).
     res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     if (req.method === 'OPTIONS') {
