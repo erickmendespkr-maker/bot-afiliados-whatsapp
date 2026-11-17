@@ -13,6 +13,25 @@ checks.push({ item: 'servidor delega envio ao motor existente', ok: localServer.
 checks.push({ item: 'painel possui autenticacao', ok: painel.includes('export function autorizado(req)') });
 checks.push({ item: 'painel possui QR Code', ok: painel.includes('getLatestQr') });
 checks.push({ item: 'painel possui controle de pausa', ok: painel.includes('definirPausa') });
+// Verificacoes adicionais de integracao: apenas inspecao, sem WhatsApp nem envios.
+const rotasEssenciais = [
+  ['/painel/status', "url === '/painel/status'"],
+  ['/painel/grupos', "url === '/painel/grupos'"],
+  ['/painel/origens', "url === '/painel/origens'"],
+  ['/painel/destinos', "url === '/painel/destinos'"],
+  ['/painel/qr', "url === '/painel/qr'"],
+  ['/painel/afiliados', "url === '/painel/afiliados'"],
+  ['/painel/operacao', "url === '/painel/operacao'"],
+  ['/painel/simular-oferta', "url === '/painel/simular-oferta'"],
+  ['/painel/lista', "url === '/painel/lista'"],
+];
+for (const [rota, assinatura] of rotasEssenciais) {
+  checks.push({ item: 'rota do painel ' + rota, ok: painel.includes(assinatura) });
+}
+checks.push({ item: 'login gera cookie HttpOnly', ok: painel.includes('painel_session=') && painel.includes('HttpOnly') });
+checks.push({ item: 'escritas com cookie exigem Origin', ok: painel.includes('cookiePermitido') && painel.includes('origemSegura') });
+checks.push({ item: 'troca de destinos revoga envio', ok: painel.includes("AUTORIZAR_ENVIO_PAINEL: 'nao'") && painel.includes("AUTORIZAR_ENVIO_WHATSAPP: 'nao'") });
+checks.push({ item: 'simulacao consulta sem envio', ok: painel.includes("url === '/painel/simular-oferta'") && painel.includes('simulacao: true, enviado: false') });
 const hasToken = Boolean(process.env.PAINEL_TOKEN?.trim());
 const hosted = Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.PAINEL_NA_REDE === 'sim');
 checks.push({ item: 'token configurado para acesso remoto', ok: !hosted || hasToken });
