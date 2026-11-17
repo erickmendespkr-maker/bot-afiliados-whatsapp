@@ -4,7 +4,7 @@
 //
 // Roda dentro do mesmo servidor local que atende a extensao do navegador.
 import { readFileSync, unlinkSync } from 'node:fs';
-import { timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual, randomBytes } from 'node:crypto';
 import {
   listarPromocoes,
   marcarComoEnviada,
@@ -119,7 +119,7 @@ const PAGINA_SENHA_BASE = `<!doctype html>
 <body>
   <form class="caixa" id="form">
     <h1>Oferta Ninja 🥷</h1>
-    <p>Cole a senha do painel (ela aparece no terminal do PC, depois de <code>?t=</code>).</p>
+    <p>Informe a senha de acesso exibida no terminal do motor.</p>
     <input id="senha" type="password" placeholder="Senha do painel" autocomplete="current-password" autofocus>
     <button type="submit">Entrar</button>
     <div class="erro" id="erro">Senha incorreta - confira e tente de novo.</div>
@@ -140,8 +140,19 @@ const PAGINA_SENHA_BASE = `<!doctype html>
     // Sem erro: se a senha ja foi salva neste aparelho, entra sozinho.
     try {
       const salva = localStorage.getItem('painelToken');
-      if (salva) location.replace('/painel?t=' + encodeURIComponent(salva));
+      if (salva) entrar(salva);
     } catch {}
+  }
+
+  async function entrar(valor) {
+    try {
+      const resposta = await fetch('/painel/login', { method: 'POST', headers: { 'x-painel-token': valor }, cache: 'no-store' });
+      if (!resposta.ok) throw new Error('Senha invalida');
+      location.replace('/painel');
+    } catch {
+      try { localStorage.removeItem('painelToken'); } catch {}
+      erro.style.display = 'block';
+    }
   }
 
   form.addEventListener('submit', (e) => {
@@ -149,7 +160,7 @@ const PAGINA_SENHA_BASE = `<!doctype html>
     const valor = campo.value.trim();
     if (!valor) return;
     try { localStorage.setItem('painelToken', valor); } catch {}
-    location.href = '/painel?t=' + encodeURIComponent(valor);
+    entrar(valor);
   });
 </script>
 </body>
@@ -280,7 +291,7 @@ const TOKEN = (function () {
 
 // Chamadas fetch autenticadas usam cabecalho, nao query string: tokens em URLs
 // podem aparecer em historicos, logs de proxy e ferramentas de monitoramento.
-// Mantemos comToken apenas para imagens carregadas diretamente por <img>.
+// As imagens privadas tambem usam o cabecalho autenticado.
 function fetchAutenticado(url, options = {}) {
   const headers = new Headers(options.headers || {});
   if (TOKEN) headers.set('x-painel-token', TOKEN);
@@ -727,6 +738,7 @@ function ehLocal(req) {
 // Senha de acesso: exigida quando a requisicao vem de OUTRO aparelho da rede
 // (ex: seu celular). Aceita por "?t=SENHA" na URL ou pelo cabecalho
 // "x-painel-token" (usado pelas chamadas internas da pagina).
+const sessoesPainel = new Map();
 export function autorizado(req) {
   // Nunca dispensar senha em nuvem, rede ou tunel: proxies podem chegar via loopback.
   if (!process.env.PORT && !process.env.RENDER && !process.env.RENDER_SERVICE_ID && !config.painel.naRede && !config.painel.tunelAutomatico && ehLocal(req)) return true;
@@ -735,6 +747,14 @@ export function autorizado(req) {
   const url = new URL(req.url, 'http://x');
   // Preferir o cabecalho: um token antigo na URL nao deve sobrepor a credencial atual.
   const informado = req.headers['x-painel-token'] || url.searchParams.get('t') || '';
+  // Sessao efemera so autoriza leitura do HTML do painel; escritas continuam exigindo cabecalho.
+  if (!informado && req.method === 'GET' && url.pathname === '/painel') {
+    const cookie = (req.headers.cookie || '').split(';').map(x => x.trim()).find(x => x.startsWith('painel_session='));
+    const sessao = cookie?.slice('painel_session='.length);
+    const validade = sessoesPainel.get(sessao);
+    if (validade && validade > Date.now()) return true;
+    if (sessao) sessoesPainel.delete(sessao);
+  }
   // Comparacao em tempo constante para evitar vazamento por tempo de resposta.
   const recebido = Buffer.from(String(informado), 'utf8');
   const segredo = Buffer.from(String(esperado), 'utf8');
@@ -770,6 +790,21 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
   if (req.method === 'GET' && url === '/painel/icone.svg') {
     res.writeHead(200, { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'max-age=86400' });
     res.end(ICONE_SVG);
+    return true;
+  }
+
+  if (req.method === 'POST' && url === '/painel/login') {
+    if (!autorizado(req)) {
+      sendJson(res, 401, { ok: false, error: 'Senha invalida' });
+      return true;
+    }
+    const sessao = randomBytes(32).toString('hex');
+    const agora = Date.now();
+    for (const [id, expira] of sessoesPainel) if (expira <= agora) sessoesPainel.delete(id);
+    sessoesPainel.set(sessao, agora + 12 * 60 * 60 * 1000);
+    const seguro = req.socket.encrypted || req.headers['x-forwarded-proto'] === 'https';
+    res.setHeader('Set-Cookie', `painel_session=${sessao}; HttpOnly; SameSite=Strict; Path=/painel; Max-Age=43200${seguro ? '; Secure' : ''}`);
+    sendJson(res, 200, { ok: true });
     return true;
   }
 
