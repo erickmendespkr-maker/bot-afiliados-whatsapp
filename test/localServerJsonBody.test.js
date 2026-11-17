@@ -31,3 +31,29 @@ test('HTTP body parser rejects malformed JSON with status 400', async () => {
 test('HTTP body parser rejects payloads larger than 1 MB with status 413', async () => {
   await assert.rejects(parse('x'.repeat(1_000_001)), (err) => err.statusCode === 413);
 });
+
+test('HTTP body parser accepts exactly 1 MB and rejects the next byte', async () => {
+  const valid = JSON.stringify({ data: 'x'.repeat(1_000_000 - 11) });
+  assert.equal(Buffer.byteLength(valid), 1_000_000);
+  const parsed = await parse(valid);
+  assert.equal(parsed.data.length, 1_000_000 - 11);
+  await assert.rejects(parse(valid + ' '), (err) => err.statusCode === 413);
+});
+
+test('HTTP body parser rejects an aborted request without hanging', async () => {
+  const request = new PassThrough();
+  const pending = readJsonBody(request);
+  request.write('{"partial":');
+  request.emit('aborted');
+  await assert.rejects(pending, (err) => err.statusCode === 400);
+  request.destroy();
+});
+
+test('HTTP body parser propagates stream errors', async () => {
+  const request = new PassThrough();
+  const pending = readJsonBody(request);
+  const failure = new Error('stream failed');
+  request.emit('error', failure);
+  await assert.rejects(pending, (err) => err === failure);
+  request.destroy();
+});
