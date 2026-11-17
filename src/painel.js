@@ -260,11 +260,9 @@ export const PAGINA_HTML = `<!doctype html>
 const lista = document.getElementById('lista');
 let ultimoJson = '';
 
-// A senha e informada na tela de login e mantida somente neste aparelho.
-// Nunca aceitar credenciais pela URL, inclusive em acessos antigos.
-const TOKEN = (() => {
-  try { return localStorage.getItem('painelToken') || ''; } catch { return ''; }
-})();
+// O cookie HttpOnly de sessao autentica as requisicoes do painel.
+// Nao ler nem armazenar o token mestre em localStorage ou JavaScript.
+const TOKEN = '';
 
 // Chamadas fetch autenticadas usam cabecalho, nao query string: tokens em URLs
 // podem aparecer em historicos, logs de proxy e ferramentas de monitoramento.
@@ -722,8 +720,19 @@ export function autorizado(req) {
   const url = new URL(req.url, 'http://x');
   // Preferir o cabecalho: um token antigo na URL nao deve sobrepor a credencial atual.
   const informado = req.headers['x-painel-token'] || '';
-  // Sessao efemera so autoriza leitura do HTML do painel; escritas continuam exigindo cabecalho.
-  if (!informado && req.method === 'GET' && url.pathname === '/painel') {
+  // A sessao HttpOnly autentica o painel sem expor o token mestre ao JavaScript.
+  // Escritas com cookie exigem Origin explicito da mesma origem (defesa CSRF).
+  let origemSegura = false;
+  if (req.headers.origin) {
+    try {
+      const origem = new URL(req.headers.origin);
+      origemSegura = (origem.protocol === 'http:' || origem.protocol === 'https:') &&
+        origem.host === req.headers.host;
+    } catch { /* Origem invalida. */ }
+  }
+  const cookiePermitido = req.method === 'GET' ||
+    (req.method === 'POST' && origemSegura);
+  if (!informado && url.pathname.startsWith('/painel') && cookiePermitido) {
     const cookie = (req.headers.cookie || '').split(';').map(x => x.trim()).find(x => x.startsWith('painel_session='));
     const sessao = cookie?.slice('painel_session='.length);
     const validade = sessoesPainel.get(sessao);
