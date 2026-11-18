@@ -295,7 +295,9 @@ export function startLocalServer() {
   // aceita tambem os aparelhos da mesma rede (pra abrir o painel no celular).
   // Render exige escuta em 0.0.0.0 para encaminhar requisicoes ao container.
   // A autenticacao continua obrigatoria para acessos nao locais.
-  const hospedado = Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID);
+  // PORT e definido por diversos provedores (ex.: Railway), nao apenas pelo Render.
+  // Sem escutar em 0.0.0.0, o proxy externo nao consegue acessar o painel.
+  const hospedado = Boolean(process.env.PORT || process.env.RENDER || process.env.RENDER_SERVICE_ID);
   const endereco = (config.painel.naRede || hospedado) ? '0.0.0.0' : '127.0.0.1';
 
   server.listen(port, endereco, () => {
