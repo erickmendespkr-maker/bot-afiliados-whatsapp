@@ -714,7 +714,7 @@ function ehLocal(req) {
 const sessoesPainel = new Map();
 export function autorizado(req) {
   // Nunca dispensar senha em nuvem, rede ou tunel: proxies podem chegar via loopback.
-  if (!process.env.PORT && !process.env.RENDER && !process.env.RENDER_SERVICE_ID && !config.painel.naRede && !config.painel.tunelAutomatico && ehLocal(req)) return true;
+  if (!process.env.PORT && !process.env.RENDER && !process.env.RENDER_SERVICE_ID && !config.painel.naRede && ehLocal(req)) return true;
   const esperado = config.painel.token;
   if (!esperado) return false; // sem senha configurada, nao libera a rede
   const url = new URL(req.url, 'http://x');
