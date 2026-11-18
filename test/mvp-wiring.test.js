@@ -62,3 +62,29 @@ test('respostas privadas bloqueiam cache, iframe e referer', () => {
   const painel = source('src/painel.js');
   assert.match(painel, /no-store, private/);
 });
+
+
+test('rota de publicacao exige token e rejeita Origin divergente', () => {
+  const server = source('src/localServer.js');
+  assert.match(server, /if \(!autorizado\(req\)\)/);
+  assert.match(server, /sendJson\(res, 401/);
+  assert.match(server, /if \(req\.headers\.origin\)/);
+  assert.match(server, /origem\.host === req\.headers\.host/);
+  assert.match(server, /Origem nao autorizada/);
+});
+
+test('servidor hospedado escuta em todas as interfaces e respeita PORT', () => {
+  const server = source('src/localServer.js');
+  const config = source('src/config.js');
+  assert.match(server, /process\.env\.PORT/);
+  assert.match(server, /'0\.0\.0\.0'/);
+  assert.match(config, /env\.PORT \|\| env\.EXTENSION_SERVER_PORT/);
+});
+
+test('publicacao pela extensao falha fechada sem confirmacao explicita', () => {
+  const server = source('src/localServer.js');
+  assert.match(server, /config\.dryRun \|\| process\.env\.AUTORIZAR_ENVIO_EXTENSAO !== 'sim'/);
+  assert.match(server, /confirmados\.length === 0/);
+  assert.match(server, /config\.whatsapp\.groupJids\.every/);
+  assert.match(server, /sendJson\(res, 403/);
+});
