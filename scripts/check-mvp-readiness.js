@@ -42,6 +42,8 @@ const destinosConfirmados = (process.env.GRUPOS_DESTINO_CONFIRMADOS || '').split
 const envioExtensaoAtivo = process.env.AUTORIZAR_ENVIO_EXTENSAO === 'sim';
 checks.push({ item: 'extensao autorizada somente com destinos confirmados', ok: !envioExtensaoAtivo || destinosConfirmados.length > 0 });
 checks.push({ item: 'destinos confirmados sem duplicatas', ok: new Set(destinosConfirmados).size === destinosConfirmados.length });
+// Um texto arbitrario nao comprova um grupo WhatsApp. Nunca imprimir os JIDs no diagnostico.
+checks.push({ item: 'destinos confirmados com JIDs de grupo validos', ok: destinosConfirmados.every((jid) => /^[0-9]+(?:-[0-9]+)?@g\.us$/.test(jid)) });
 if (hosted) {
   console.log('AVISO - Hospedagem: validar armazenamento persistente da sessao WhatsApp e processo sempre ativo; PORT/RENDER nao garantem isso.');
   console.log('AVISO - Credenciais: conferir PAINEL_TOKEN e afiliados por variaveis privadas; nunca registrar valores nos logs.');
