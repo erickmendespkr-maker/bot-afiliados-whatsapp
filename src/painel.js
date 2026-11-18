@@ -599,10 +599,13 @@ async function atualizarGruposMotor() {
       const caixa = document.createElement('input');
       caixa.type = 'checkbox'; caixa.value = g.jid; caixa.checked = g.destino;
       caixa.className = 'grupo-destino';
+      caixa.setAttribute('aria-label', 'Destino: ' + g.nome);
+      linha.appendChild(document.createTextNode('Destino '));
       linha.appendChild(caixa);
       const origem = document.createElement('input');
       origem.type = 'checkbox'; origem.value = g.jid; origem.checked = g.origem;
       origem.className = 'grupo-origem';
+      origem.setAttribute('aria-label', 'Origem: ' + g.nome);
       linha.appendChild(document.createTextNode(' Origem '));
       linha.appendChild(origem);
       linha.style.padding = '7px 0';
