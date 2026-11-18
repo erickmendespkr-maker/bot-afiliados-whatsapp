@@ -37,6 +37,15 @@ const hasToken = Boolean(process.env.PAINEL_TOKEN?.trim());
 const hosted = Boolean(process.env.PORT || process.env.RENDER || process.env.RENDER_SERVICE_ID || ['sim', 'true', '1'].includes(String(process.env.PAINEL_NA_REDE || '').toLowerCase()) || ['sim', 'true', '1'].includes(String(process.env.PAINEL_TUNEL_AUTOMATICO || '').toLowerCase()));
 checks.push({ item: 'token configurado para acesso remoto', ok: !hosted || hasToken });
 checks.push({ item: 'envio real desabilitado por padrao', ok: process.env.AUTORIZAR_ENVIO_EXTENSAO !== 'sim' && process.env.AUTORIZAR_ENVIO_PAINEL !== 'sim' && process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim' });
+// Validacao de configuracao sem imprimir tokens, JIDs ou credenciais.
+const destinosConfirmados = (process.env.GRUPOS_DESTINO_CONFIRMADOS || '').split(',').map((jid) => jid.trim()).filter(Boolean);
+const envioExtensaoAtivo = process.env.AUTORIZAR_ENVIO_EXTENSAO === 'sim';
+checks.push({ item: 'extensao autorizada somente com destinos confirmados', ok: !envioExtensaoAtivo || destinosConfirmados.length > 0 });
+checks.push({ item: 'destinos confirmados sem duplicatas', ok: new Set(destinosConfirmados).size === destinosConfirmados.length });
+if (hosted) {
+  console.log('AVISO - Hospedagem: validar armazenamento persistente da sessao WhatsApp e processo sempre ativo; PORT/RENDER nao garantem isso.');
+  console.log('AVISO - Credenciais: conferir PAINEL_TOKEN e afiliados por variaveis privadas; nunca registrar valores nos logs.');
+}
 for (const check of checks) console.log((check.ok ? 'OK' : 'PENDENTE') + ' - ' + check.item);
 console.log('Diagnostico estatico: nao comprova QR conectado, sessao persistente, credenciais ou publicacao.');
 if (checks.some((check) => !check.ok)) process.exitCode = 1;
