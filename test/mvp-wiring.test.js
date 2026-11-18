@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const source = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
+const source = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
 test('o ponto de entrada inicia o servidor original', () => {
   const entry = source('index.js');
