@@ -37,3 +37,28 @@ test('o painel protege sessoes e oferece simulacao sem envio', () => {
   assert.match(painel, /\/painel\/simular-oferta/);
   assert.match(painel, /simulacao: true, enviado: false/);
 });
+
+test('JSON invalido ou corpo nao objeto nao derruba a rota da extensao', () => {
+  const server = source('src/localServer.js');
+  assert.match(server, /JSON excede o limite de 1 MB/);
+  assert.match(server, /JSON invalido/);
+  assert.match(server, /Array\.isArray\(payload\)/);
+  assert.match(server, /void handlePost\(req, res\)\.catch\(/);
+});
+
+test('trocar destinos revoga todas as autorizacoes de envio', () => {
+  const painel = source('src/painel.js');
+  for (const variavel of ['AUTORIZAR_ENVIO_EXTENSAO', 'AUTORIZAR_ENVIO_PAINEL', 'AUTORIZAR_ENVIO_WHATSAPP']) {
+    assert.match(painel, new RegExp(variavel + ": 'nao'"));
+  }
+  assert.match(painel, /config\.whatsapp\.groupJids\.splice\(/);
+});
+
+test('respostas privadas bloqueiam cache, iframe e referer', () => {
+  const server = source('src/localServer.js');
+  assert.match(server, /Referrer-Policy/);
+  assert.match(server, /X-Frame-Options/);
+  assert.match(server, /Cache-Control/);
+  const painel = source('src/painel.js');
+  assert.match(painel, /no-store, private/);
+});
