@@ -37,3 +37,18 @@ test('diagnostico exige token em hospedagem e nao divulga seu valor', () => {
   assert.equal(result.status, 1);
   assert.match(result.stdout, /PENDENTE - token configurado para acesso remoto/);
 });
+
+
+test('diagnostico rejeita destino que nao e JID de grupo', () => {
+  const result = run({ GRUPOS_DESTINO_CONFIRMADOS: 'grupo-qualquer', AUTORIZAR_ENVIO_EXTENSAO: 'sim' });
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /PENDENTE - destinos confirmados com JIDs de grupo validos/);
+  assert.doesNotMatch(result.stdout + result.stderr, /grupo-qualquer/);
+});
+
+test('diagnostico aceita formato de JID de grupo sem expor identificador', () => {
+  const jid = '120363123456789012@g.us';
+  const result = run({ GRUPOS_DESTINO_CONFIRMADOS: jid });
+  assert.doesNotMatch(result.stdout + result.stderr, /120363123456789012/);
+  assert.match(result.stdout, /OK - destinos confirmados com JIDs de grupo validos/);
+});
