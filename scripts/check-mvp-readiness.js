@@ -33,7 +33,8 @@ checks.push({ item: 'escritas com cookie exigem Origin', ok: painel.includes('co
 checks.push({ item: 'troca de destinos revoga envio', ok: painel.includes("AUTORIZAR_ENVIO_PAINEL: 'nao'") && painel.includes("AUTORIZAR_ENVIO_WHATSAPP: 'nao'") });
 checks.push({ item: 'simulacao consulta sem envio', ok: painel.includes("url === '/painel/simular-oferta'") && painel.includes('simulacao: true, enviado: false') });
 const hasToken = Boolean(process.env.PAINEL_TOKEN?.trim());
-const hosted = Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.PAINEL_NA_REDE === 'sim');
+// PORT tambem identifica hospedagens como Railway; nao declarar acesso remoto pronto sem token.
+const hosted = Boolean(process.env.PORT || process.env.RENDER || process.env.RENDER_SERVICE_ID || ['sim', 'true', '1'].includes(String(process.env.PAINEL_NA_REDE || '').toLowerCase()) || ['sim', 'true', '1'].includes(String(process.env.PAINEL_TUNEL_AUTOMATICO || '').toLowerCase()));
 checks.push({ item: 'token configurado para acesso remoto', ok: !hosted || hasToken });
 checks.push({ item: 'envio real desabilitado por padrao', ok: process.env.AUTORIZAR_ENVIO_EXTENSAO !== 'sim' && process.env.AUTORIZAR_ENVIO_PAINEL !== 'sim' && process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim' });
 for (const check of checks) console.log((check.ok ? 'OK' : 'PENDENTE') + ' - ' + check.item);
