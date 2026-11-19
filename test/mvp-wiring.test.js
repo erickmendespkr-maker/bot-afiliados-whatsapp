@@ -98,3 +98,15 @@ test('extensao rejeita destinos configurados duplicados ou malformados antes e d
   const beforeSend = server.slice(server.indexOf('await waitForConnection()'), server.indexOf('const ok = await sendDealToGroups'));
   assert.match(beforeSend, /!destinosValidos\(config\.whatsapp\.groupJids\)/);
 });
+
+
+test('rota /post bloqueia sem autenticacao antes de ler corpo ou acessar motor', () => {
+  const server = source('src/localServer.js');
+  const route = server.slice(server.indexOf("if (req.method === 'POST' && new URL(req.url"), server.indexOf('// Painel local das promocoes prontas'));
+  const auth = route.indexOf('if (!autorizado(req))');
+  const origin = route.indexOf('if (req.headers.origin)');
+  const handler = route.indexOf('void handlePost(req, res).catch(');
+  assert.ok(auth >= 0 && origin > auth && handler > origin, 'autenticacao e origem devem preceder processamento da oferta');
+  assert.match(route, /sendJson\(res, 401/);
+  assert.match(route, /sendJson\(res, 403/);
+});
