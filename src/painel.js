@@ -924,7 +924,7 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
       envioExtensaoAutorizado: (() => {
         const validos = (jids) => jids.length > 0 &&
           new Set(jids).size === jids.length &&
-          jids.every((jid) => /^[0-9]+(?:-[0-9]+)?@g\\.us$/.test(jid));
+          jids.every((jid) => /^[0-9]+(?:-[0-9]+)?@g\.us$/.test(jid));
         const confirmados = (process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
           .split(',').map((jid) => jid.trim()).filter(Boolean);
         return !config.dryRun && process.env.AUTORIZAR_ENVIO_EXTENSAO === 'sim' &&
