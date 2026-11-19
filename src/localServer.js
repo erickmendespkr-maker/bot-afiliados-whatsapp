@@ -121,12 +121,19 @@ async function handlePost(req, res) {
     return;
   }
 
+  // Validacao em tempo de execucao: o diagnostico offline pode nao ter sido executado.
+  // Exigir JIDs de grupos sem duplicatas antes de permitir publicacao.
+  const destinosValidos = (jids) =>
+    jids.length > 0 &&
+    new Set(jids).size === jids.length &&
+    jids.every((jid) => /^[0-9]+(?:-[0-9]+)?@g\.us$/.test(jid));
+
   // Publicacao pela extensao exige habilitacao explicita e confirmacao dos JIDs.
   // O token do painel autentica o operador, mas nao autoriza disparos por si so.
   const confirmados = (process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
     .split(',').map((jid) => jid.trim()).filter(Boolean);
   if (config.dryRun || process.env.AUTORIZAR_ENVIO_EXTENSAO !== 'sim' ||
-      confirmados.length === 0 ||
+      !destinosValidos(confirmados) ||
       !config.whatsapp.groupJids.every((jid) => confirmados.includes(jid))) {
     sendJson(res, 403, {
       ok: false,
@@ -154,7 +161,7 @@ async function handlePost(req, res) {
     const destinosConfirmadosAgora = (process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
       .split(',').map((jid) => jid.trim()).filter(Boolean);
     if (config.dryRun || process.env.AUTORIZAR_ENVIO_EXTENSAO !== 'sim' ||
-        destinosConfirmadosAgora.length === 0 ||
+        !destinosValidos(destinosConfirmadosAgora) ||
         !config.whatsapp.groupJids.every((jid) => destinosConfirmadosAgora.includes(jid))) {
       sendJson(res, 403, { ok: false, error: 'Autorizacao de envio ou confirmacao dos destinos revogada.' });
       return;
