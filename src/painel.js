@@ -1315,7 +1315,8 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
         if (config.dryRun || process.env.AUTORIZAR_ENVIO_PAINEL !== 'sim' ||
             process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim' ||
             confirmados.length === 0 ||
-            !config.whatsapp.groupJids.every((jid) => confirmados.includes(jid))) {
+            new Set(config.whatsapp.groupJids).size !== config.whatsapp.groupJids.length ||
+            !config.whatsapp.groupJids.every((jid) => /^[0-9]+(?:-[0-9]+)?@g\.us$/.test(jid) && confirmados.includes(jid))) {
           sendJson(res, 403, {
             ok: false,
             error: 'Envio bloqueado: exige AUTORIZAR_ENVIO_PAINEL=sim, AUTORIZAR_ENVIO_WHATSAPP=sim e todos os JIDs em GRUPOS_DESTINO_CONFIRMADOS.'
