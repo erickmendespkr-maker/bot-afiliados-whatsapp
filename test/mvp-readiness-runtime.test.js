@@ -84,3 +84,14 @@ test('diagnostico aceita JID de grupo com sufixo numerico', () => {
   assert.match(result.stdout, /OK - destinos confirmados com JIDs de grupo validos/);
   assert.doesNotMatch(result.stdout + result.stderr, /120363123456789012/);
 });
+
+for (const [flag, mensagem] of [
+  ['AUTORIZAR_ENVIO_PAINEL', 'painel autorizado somente com destinos confirmados'],
+  ['AUTORIZAR_ENVIO_WHATSAPP', 'whatsapp autorizado somente com destinos confirmados']
+]) {
+  test(`diagnostico exige destinos confirmados para ${flag}`, () => {
+    const result = run({ [flag]: 'sim', GRUPOS_DESTINO_CONFIRMADOS: '' });
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, new RegExp('PENDENTE - ' + mensagem));
+  });
+}
