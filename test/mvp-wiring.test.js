@@ -84,7 +84,8 @@ test('servidor hospedado escuta em todas as interfaces e respeita PORT', () => {
 test('publicacao pela extensao falha fechada sem confirmacao explicita', () => {
   const server = source('src/localServer.js');
   assert.match(server, /config\.dryRun \|\| process\.env\.AUTORIZAR_ENVIO_EXTENSAO !== 'sim'/);
-  assert.match(server, /confirmados\.length === 0/);
+  assert.match(server, /!destinosValidos\(confirmados\)/);
+  assert.match(server, /!destinosValidos\(destinosConfirmadosAgora\)/);
   assert.match(server, /config\.whatsapp\.groupJids\.every/);
   assert.match(server, /sendJson\(res, 403/);
 });
