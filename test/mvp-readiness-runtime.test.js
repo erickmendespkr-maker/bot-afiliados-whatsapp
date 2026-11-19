@@ -68,3 +68,19 @@ test('diagnostico nao confunde token presente com homologacao operacional', () =
   assert.match(result.stdout, /OK - token configurado para acesso remoto/);
   assert.match(result.stdout, /Diagnostico estatico: nao comprova QR conectado, sessao persistente, credenciais ou publicacao/);
 });
+
+
+test('diagnostico rejeita JID com sufixo adulterado sem divulgar identificador', () => {
+  const jid = '120363123456789012@gXus';
+  const result = run({ GRUPOS_DESTINO_CONFIRMADOS: jid });
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /PENDENTE - destinos confirmados com JIDs de grupo validos/);
+  assert.doesNotMatch(result.stdout + result.stderr, /120363123456789012/);
+});
+
+test('diagnostico aceita JID de grupo com sufixo numerico', () => {
+  const jid = '120363123456789012-1234567890@g.us';
+  const result = run({ GRUPOS_DESTINO_CONFIRMADOS: jid });
+  assert.match(result.stdout, /OK - destinos confirmados com JIDs de grupo validos/);
+  assert.doesNotMatch(result.stdout + result.stderr, /120363123456789012/);
+});
