@@ -40,7 +40,11 @@ checks.push({ item: 'envio real desabilitado por padrao', ok: process.env.AUTORI
 // Validacao de configuracao sem imprimir tokens, JIDs ou credenciais.
 const destinosConfirmados = (process.env.GRUPOS_DESTINO_CONFIRMADOS || '').split(',').map((jid) => jid.trim()).filter(Boolean);
 const envioExtensaoAtivo = process.env.AUTORIZAR_ENVIO_EXTENSAO === 'sim';
+const envioPainelAtivo = process.env.AUTORIZAR_ENVIO_PAINEL === 'sim';
+const envioWhatsappAtivo = process.env.AUTORIZAR_ENVIO_WHATSAPP === 'sim';
 checks.push({ item: 'extensao autorizada somente com destinos confirmados', ok: !envioExtensaoAtivo || destinosConfirmados.length > 0 });
+checks.push({ item: 'painel autorizado somente com destinos confirmados', ok: !envioPainelAtivo || destinosConfirmados.length > 0 });
+checks.push({ item: 'whatsapp autorizado somente com destinos confirmados', ok: !envioWhatsappAtivo || destinosConfirmados.length > 0 });
 checks.push({ item: 'destinos confirmados sem duplicatas', ok: new Set(destinosConfirmados).size === destinosConfirmados.length });
 // Um texto arbitrario nao comprova um grupo WhatsApp. Nunca imprimir os JIDs no diagnostico.
 checks.push({ item: 'destinos confirmados com JIDs de grupo validos', ok: destinosConfirmados.every((jid) => /^[0-9]+(?:-[0-9]+)?@g\.us$/.test(jid)) });
