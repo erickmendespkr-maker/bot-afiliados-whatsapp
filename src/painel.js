@@ -919,9 +919,18 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
       whatsappConectado: Boolean(getSocket()),
       pausado: estaPausado(),
       modoTeste: config.dryRun,
-      envioExtensaoAutorizado: !config.dryRun && process.env.AUTORIZAR_ENVIO_EXTENSAO === 'sim' &&
-        config.whatsapp.groupJids.length > 0 &&
-        config.whatsapp.groupJids.every((jid) => (process.env.GRUPOS_DESTINO_CONFIRMADOS || '').split(',').map((v) => v.trim()).includes(jid)),
+      // Mostrar autorizacao somente quando os destinos passam pelas mesmas
+      // regras de formato e unicidade da rota /post; nao exibir falso positivo.
+      envioExtensaoAutorizado: (() => {
+        const validos = (jids) => jids.length > 0 &&
+          new Set(jids).size === jids.length &&
+          jids.every((jid) => /^[0-9]+(?:-[0-9]+)?@g\\.us$/.test(jid));
+        const confirmados = (process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
+          .split(',').map((jid) => jid.trim()).filter(Boolean);
+        return !config.dryRun && process.env.AUTORIZAR_ENVIO_EXTENSAO === 'sim' &&
+          validos(confirmados) && validos(config.whatsapp.groupJids) &&
+          config.whatsapp.groupJids.every((jid) => confirmados.includes(jid));
+      })(),
       gruposOrigem: config.groupReader.sourceGroupNames.length,
       gruposDestino: config.whatsapp.groupJids.length,
       buscaAutomatica: config.behavior.buscaAutomaticaAtiva,
