@@ -60,3 +60,28 @@ test('HTTP real: corpo maior que 1 MB retorna 413 sem derrubar servidor', async 
     assert.equal(followup.status, 200);
   });
 });
+
+test('HTTP real: limite exato de 1 MB e aceito sem truncamento', async () => {
+  await withServer(async url => {
+    const payload = JSON.stringify({ data: 'x'.repeat(1_000_000 - '{"data":""}'.length) });
+    assert.equal(Buffer.byteLength(payload), 1_000_000);
+    const response = await fetch(url, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: payload
+    });
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).body.data.length, 1_000_000 - '{"data":""}'.length);
+  });
+});
+
+test('HTTP real: caracteres UTF-8 contam em bytes no limite de 1 MB', async () => {
+  await withServer(async url => {
+    const payload = JSON.stringify({ data: 'á'.repeat(500_000) });
+    assert.ok(Buffer.byteLength(payload) > 1_000_000);
+    const response = await fetch(url, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: payload
+    });
+    assert.equal(response.status, 413);
+    const followup = await fetch(url, { method: 'POST', body: '{}' });
+    assert.equal(followup.status, 200);
+  });
+});
