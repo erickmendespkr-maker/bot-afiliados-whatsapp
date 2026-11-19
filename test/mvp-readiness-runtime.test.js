@@ -52,3 +52,19 @@ test('diagnostico aceita formato de JID de grupo sem expor identificador', () =>
   assert.doesNotMatch(result.stdout + result.stderr, /120363123456789012/);
   assert.match(result.stdout, /OK - destinos confirmados com JIDs de grupo validos/);
 });
+
+test('diagnostico nao aprova MVP com envio real habilitado mesmo com JID bem formado', () => {
+  const result = run({
+    AUTORIZAR_ENVIO_WHATSAPP: 'sim',
+    GRUPOS_DESTINO_CONFIRMADOS: '120363123456789012@g.us'
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /PENDENTE - envio real desabilitado por padrao/);
+  assert.doesNotMatch(result.stdout + result.stderr, /120363123456789012/);
+});
+
+test('diagnostico nao confunde token presente com homologacao operacional', () => {
+  const result = run({ PORT: '4545', PAINEL_TOKEN: 'TOKEN_DE_TESTE_NAO_REAL' });
+  assert.match(result.stdout, /OK - token configurado para acesso remoto/);
+  assert.match(result.stdout, /Diagnostico estatico: nao comprova QR conectado, sessao persistente, credenciais ou publicacao/);
+});
