@@ -89,3 +89,12 @@ test('publicacao pela extensao falha fechada sem confirmacao explicita', () => {
   assert.match(server, /config\.whatsapp\.groupJids\.every/);
   assert.match(server, /sendJson\(res, 403/);
 });
+
+
+test('extensao rejeita destinos configurados duplicados ou malformados antes e depois da conexao', () => {
+  const server = source('src/localServer.js');
+  const checks = server.match(/!destinosValidos\(config\.whatsapp\.groupJids\)/g) || [];
+  assert.equal(checks.length, 2, 'validar JIDs configurados nos dois pontos de autorizacao');
+  const beforeSend = server.slice(server.indexOf('await waitForConnection()'), server.indexOf('const ok = await sendDealToGroups'));
+  assert.match(beforeSend, /!destinosValidos\(config\.whatsapp\.groupJids\)/);
+});
