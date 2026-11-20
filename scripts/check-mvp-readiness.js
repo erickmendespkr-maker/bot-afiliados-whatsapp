@@ -46,6 +46,15 @@ checks.push({ item: 'extensao autorizada somente com destinos confirmados', ok: 
 checks.push({ item: 'painel autorizado somente com destinos confirmados', ok: !envioPainelAtivo || destinosConfirmados.length > 0 });
 checks.push({ item: 'whatsapp autorizado somente com destinos confirmados', ok: !envioWhatsappAtivo || destinosConfirmados.length > 0 });
 checks.push({ item: 'destinos confirmados sem duplicatas', ok: new Set(destinosConfirmados).size === destinosConfirmados.length });
+// Os destinos confirmados precisam corresponder exatamente aos configurados quando o envio estiver habilitado.
+// Isso evita um diagnostico verde com confirmacoes antigas ou grupos extras.
+const destinosConfigurados = (process.env.WHATSAPP_GROUP_JIDS || '').split(',').map((jid) => jid.trim()).filter(Boolean);
+const algumEnvioAtivo = envioExtensaoAtivo || envioPainelAtivo || envioWhatsappAtivo;
+const mesmosDestinos = destinosConfigurados.length > 0 &&
+  destinosConfigurados.length === destinosConfirmados.length &&
+  destinosConfigurados.every((jid) => destinosConfirmados.includes(jid));
+checks.push({ item: 'envio autorizado somente para conjunto exato de destinos configurados', ok: !algumEnvioAtivo || mesmosDestinos });
+checks.push({ item: 'destinos configurados sem duplicatas', ok: new Set(destinosConfigurados).size === destinosConfigurados.length });
 // Um texto arbitrario nao comprova um grupo WhatsApp. Nunca imprimir os JIDs no diagnostico.
 checks.push({ item: 'destinos confirmados com JIDs de grupo validos', ok: destinosConfirmados.every((jid) => /^[0-9]+(?:-[0-9]+)?@g\.us$/.test(jid)) });
 if (hosted) {
