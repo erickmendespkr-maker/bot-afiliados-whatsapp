@@ -729,9 +729,13 @@ export function autorizado(req) {
   if (req.headers.origin) {
     try {
       const origem = new URL(req.headers.origin);
+      const proxyHttps = req.socket.encrypted ||
+        String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase() === 'https';
       origemSegura = (origem.protocol === 'http:' || origem.protocol === 'https:') &&
-        origem.host === req.headers.host &&
-        (!(req.socket.encrypted || req.headers['x-forwarded-proto'] === 'https') || origem.protocol === 'https:');
+        (!proxyHttps || origem.protocol === 'https:') &&
+        !origem.username && !origem.password &&
+        origem.pathname === '/' && !origem.search && !origem.hash &&
+        origem.host === req.headers.host;
     } catch { /* Origem invalida. */ }
   }
   const cookiePermitido = req.method === 'GET' ||
@@ -787,9 +791,13 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
     let mesmaOrigem = false;
     try {
       const origem = new URL(req.headers.origin);
+      const proxyHttps = req.socket.encrypted ||
+        String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase() === 'https';
       mesmaOrigem = (origem.protocol === 'http:' || origem.protocol === 'https:') &&
-        origem.host === req.headers.host &&
-        (!(req.socket.encrypted || req.headers['x-forwarded-proto'] === 'https') || origem.protocol === 'https:');
+        (!proxyHttps || origem.protocol === 'https:') &&
+        !origem.username && !origem.password &&
+        origem.pathname === '/' && !origem.search && !origem.hash &&
+        origem.host === req.headers.host;
     } catch { /* Origem invalida. */ }
     if (!mesmaOrigem) {
       sendJson(res, 403, { ok: false, error: 'Origem nao autorizada' });
