@@ -134,6 +134,7 @@ async function handlePost(req, res) {
     .split(',').map((jid) => jid.trim()).filter(Boolean);
   if (config.dryRun || process.env.AUTORIZAR_ENVIO_EXTENSAO !== 'sim' ||
       !destinosValidos(confirmados) || !destinosValidos(config.whatsapp.groupJids) ||
+      confirmados.length !== config.whatsapp.groupJids.length ||
       !config.whatsapp.groupJids.every((jid) => confirmados.includes(jid))) {
     sendJson(res, 403, {
       ok: false,
@@ -162,6 +163,7 @@ async function handlePost(req, res) {
       .split(',').map((jid) => jid.trim()).filter(Boolean);
     if (config.dryRun || process.env.AUTORIZAR_ENVIO_EXTENSAO !== 'sim' ||
         !destinosValidos(destinosConfirmadosAgora) || !destinosValidos(config.whatsapp.groupJids) ||
+        destinosConfirmadosAgora.length !== config.whatsapp.groupJids.length ||
         !config.whatsapp.groupJids.every((jid) => destinosConfirmadosAgora.includes(jid))) {
       sendJson(res, 403, { ok: false, error: 'Autorizacao de envio ou confirmacao dos destinos revogada.' });
       return;
