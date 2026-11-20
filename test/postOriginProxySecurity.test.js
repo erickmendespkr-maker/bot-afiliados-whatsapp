@@ -32,3 +32,12 @@ test('/post rejeita tentativas de confundir hostname, porta e esquema', () => {
   assert.equal(permite('ftp://painel.example.com', 'painel.example.com', 'https'), false);
   assert.equal(permite('https://painel.example.com', 'painel.example.com', 'https,http'), true);
 });
+
+// Origin deve ser uma origem serializada, nao uma URL com credenciais ou caminho.
+test('/post rejeita Origin com usuario, senha, caminho ou query', () => {
+  assert.equal(permite('https://atacante@painel.example.com', 'painel.example.com', 'https'), false);
+  assert.equal(permite('https://usuario:senha@painel.example.com', 'painel.example.com', 'https'), false);
+  assert.equal(permite('https://painel.example.com/rota', 'painel.example.com', 'https'), false);
+  assert.equal(permite('https://painel.example.com/?x=1', 'painel.example.com', 'https'), false);
+  assert.equal(permite('https://painel.example.com', 'painel.example.com', 'https'), true);
+});
