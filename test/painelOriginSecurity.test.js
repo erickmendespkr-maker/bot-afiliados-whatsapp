@@ -36,7 +36,7 @@ function requisicao(origin, host = 'painel.example.com') {
 
 test('proxy HTTPS: cookie autentica escrita apenas na origem publica exata', () => {
   assert.equal(autorizado(requisicao('https://painel.example.com')), true);
-  assert.equal(autorizado(requisicao('http://painel.example.com')), true);
+  assert.equal(autorizado(requisicao('http://painel.example.com')), true); // HTTP direto, sem proxy HTTPS
   assert.equal(autorizado(requisicao('https://outro.example.com')), false);
   assert.equal(autorizado(requisicao('https://painel.example.com.evil.test')), false);
   assert.equal(autorizado(requisicao('https://painel.example.com:444')), false);
@@ -76,4 +76,13 @@ test('token de cabecalho incorreto nao ganha acesso por cookie valido', () => {
   const req = requisicao('https://painel.example.com');
   req.headers['x-painel-token'] = 'token-incorreto';
   assert.equal(autorizado(req), false);
+});
+
+
+test('proxy HTTPS rejeita Origin HTTP mesmo com Host identico', () => {
+  const req = requisicao('http://painel.example.com');
+  req.headers['x-forwarded-proto'] = 'https';
+  assert.equal(autorizado(req), false);
+  req.headers.origin = 'https://painel.example.com';
+  assert.equal(autorizado(req), true);
 });
