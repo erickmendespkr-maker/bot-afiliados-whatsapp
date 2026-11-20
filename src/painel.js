@@ -838,7 +838,12 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
       let origemValida = false;
       try {
         const parsed = new URL(origem);
+        const proxyHttps = req.socket.encrypted ||
+          String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase() === 'https';
         origemValida = (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
+          (!proxyHttps || parsed.protocol === 'https:') &&
+          !parsed.username && !parsed.password &&
+          parsed.pathname === '/' && !parsed.search && !parsed.hash &&
           parsed.host === req.headers.host;
       } catch { /* Origem malformada ou null: rejeitar. */ }
       if (!origemValida) {
