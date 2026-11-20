@@ -260,7 +260,12 @@ export function startLocalServer() {
         let mesmaOrigem = false;
         try {
           const origem = new URL(req.headers.origin);
+          // Em proxy HTTPS, nao aceitar Origin HTTP mesmo com Host identico.
+          // Nao confiar em X-Forwarded-Host para substituir Host.
+          const proxyHttps = (req.headers['x-forwarded-proto'] || '')
+            .split(',')[0].trim().toLowerCase() === 'https';
           mesmaOrigem = (origem.protocol === 'http:' || origem.protocol === 'https:') &&
+            (!proxyHttps || origem.protocol === 'https:') &&
             origem.host === req.headers.host;
         } catch { /* Origin invalido: bloquear. */ }
         if (!mesmaOrigem) {
