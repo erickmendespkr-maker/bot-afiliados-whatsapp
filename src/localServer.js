@@ -265,6 +265,8 @@ export function startLocalServer() {
           const proxyHttps = (req.headers['x-forwarded-proto'] || '')
             .split(',')[0].trim().toLowerCase() === 'https';
           mesmaOrigem = (origem.protocol === 'http:' || origem.protocol === 'https:') &&
+            !origem.username && !origem.password &&
+            origem.pathname === '/' && !origem.search && !origem.hash &&
             (!proxyHttps || origem.protocol === 'https:') &&
             origem.host === req.headers.host;
         } catch { /* Origin invalido: bloquear. */ }
