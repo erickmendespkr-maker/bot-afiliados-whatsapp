@@ -814,7 +814,8 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
     const agora = Date.now();
     for (const [id, expira] of sessoesPainel) if (expira <= agora) sessoesPainel.delete(id);
     sessoesPainel.set(sessao, agora + 12 * 60 * 60 * 1000);
-    const seguro = req.socket.encrypted || req.headers['x-forwarded-proto'] === 'https';
+    const seguro = Boolean(req.socket.encrypted) ||
+      String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase() === 'https';
     res.setHeader('Set-Cookie', `painel_session=${sessao}; HttpOnly; SameSite=Strict; Path=/painel; Max-Age=43200${seguro ? '; Secure' : ''}`);
     sendJson(res, 200, { ok: true });
     return true;
