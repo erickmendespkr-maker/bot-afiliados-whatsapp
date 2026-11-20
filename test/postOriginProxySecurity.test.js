@@ -24,3 +24,11 @@ test('/post preserva origem HTTP no servidor local sem proxy HTTPS', () => {
   assert.equal(permite('null', 'painel.example.com', 'https'), false);
   assert.equal(permite('https://painel.example.com.evil.test', 'painel.example.com', 'https'), false);
 });
+
+test('/post rejeita tentativas de confundir hostname, porta e esquema', () => {
+  assert.equal(permite('https://painel.example.com:444', 'painel.example.com', 'https'), false);
+  assert.equal(permite('https://painel.example.com@evil.example', 'painel.example.com', 'https'), false);
+  assert.equal(permite('https://painel.example.com.evil.example', 'painel.example.com', 'https'), false);
+  assert.equal(permite('ftp://painel.example.com', 'painel.example.com', 'https'), false);
+  assert.equal(permite('https://painel.example.com', 'painel.example.com', 'https,http'), true);
+});
