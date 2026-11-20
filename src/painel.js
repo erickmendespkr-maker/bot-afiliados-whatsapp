@@ -730,7 +730,8 @@ export function autorizado(req) {
     try {
       const origem = new URL(req.headers.origin);
       origemSegura = (origem.protocol === 'http:' || origem.protocol === 'https:') &&
-        origem.host === req.headers.host;
+        origem.host === req.headers.host &&
+        (!(req.socket.encrypted || req.headers['x-forwarded-proto'] === 'https') || origem.protocol === 'https:');
     } catch { /* Origem invalida. */ }
   }
   const cookiePermitido = req.method === 'GET' ||
@@ -787,7 +788,8 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
     try {
       const origem = new URL(req.headers.origin);
       mesmaOrigem = (origem.protocol === 'http:' || origem.protocol === 'https:') &&
-        origem.host === req.headers.host;
+        origem.host === req.headers.host &&
+        (!(req.socket.encrypted || req.headers['x-forwarded-proto'] === 'https') || origem.protocol === 'https:');
     } catch { /* Origem invalida. */ }
     if (!mesmaOrigem) {
       sendJson(res, 403, { ok: false, error: 'Origem nao autorizada' });
