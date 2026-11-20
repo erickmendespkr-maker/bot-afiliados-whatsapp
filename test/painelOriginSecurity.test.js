@@ -54,3 +54,26 @@ test('origens ausentes, malformadas ou opacas nao autorizam escrita por cookie',
     assert.equal(autorizado(requisicao(origin)), false);
   }
 });
+
+test('sessao expirada ou inexistente nao autoriza escrita', () => {
+  sessoesPainel.set('sessao-expirada', Date.now() - 1);
+  const expirada = requisicao('https://painel.example.com');
+  expirada.headers.cookie = 'painel_session=sessao-expirada';
+  assert.equal(autorizado(expirada), false);
+  assert.equal(sessoesPainel.has('sessao-expirada'), false);
+  const inexistente = requisicao('https://painel.example.com');
+  inexistente.headers.cookie = 'painel_session=nao-existe';
+  assert.equal(autorizado(inexistente), false);
+});
+
+test('cookie de sessao nao autoriza POST fora das rotas do painel', () => {
+  const req = requisicao('https://painel.example.com');
+  req.url = '/post';
+  assert.equal(autorizado(req), false);
+});
+
+test('token de cabecalho incorreto nao ganha acesso por cookie valido', () => {
+  const req = requisicao('https://painel.example.com');
+  req.headers['x-painel-token'] = 'token-incorreto';
+  assert.equal(autorizado(req), false);
+});
