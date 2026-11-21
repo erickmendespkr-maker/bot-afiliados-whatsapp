@@ -48,7 +48,7 @@ checks.push({ item: 'whatsapp autorizado somente com destinos confirmados', ok: 
 checks.push({ item: 'destinos confirmados sem duplicatas', ok: new Set(destinosConfirmados).size === destinosConfirmados.length });
 // Os destinos confirmados precisam corresponder exatamente aos configurados quando o envio estiver habilitado.
 // Isso evita um diagnostico verde com confirmacoes antigas ou grupos extras.
-const destinosConfigurados = (process.env.WHATSAPP_GROUP_JIDS || '').split(',').map((jid) => jid.trim()).filter(Boolean);
+const destinosConfigurados = (process.env.WHATSAPP_GROUP_JIDS || process.env.WHATSAPP_GROUP_JID || '').split(',').map((jid) => jid.trim()).filter(Boolean);
 const algumEnvioAtivo = envioExtensaoAtivo || envioPainelAtivo || envioWhatsappAtivo;
 const mesmosDestinos = destinosConfigurados.length > 0 &&
   destinosConfigurados.length === destinosConfirmados.length &&
