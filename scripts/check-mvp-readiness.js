@@ -58,6 +58,8 @@ const mesmosDestinos = destinosConfigurados.length > 0 &&
   destinosConfigurados.length === destinosConfirmados.length &&
   destinosConfigurados.every((jid) => destinosConfirmados.includes(jid));
 checks.push({ item: 'envio autorizado somente para conjunto exato de destinos configurados', ok: !algumEnvioAtivo || mesmosDestinos });
+// Sem destino configurado, o MVP nao pode publicar ofertas mesmo com o envio desativado.
+checks.push({ item: 'ao menos um destino configurado para publicacao', ok: destinosConfigurados.length > 0 });
 checks.push({ item: 'destinos configurados sem duplicatas', ok: new Set(destinosConfigurados).size === destinosConfigurados.length });
 // Validar tambem os destinos configurados, mesmo com envios desligados: evita diagnostico verde para JIDs invalidos.
 checks.push({ item: 'destinos configurados com JIDs de grupo validos', ok: destinosConfigurados.every((jid) => /^[0-9]+(?:-[0-9]+)?@g\.us$/.test(jid)) });
