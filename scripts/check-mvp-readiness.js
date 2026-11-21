@@ -1,6 +1,10 @@
 // Diagnostico offline: nao conecta ao WhatsApp nem envia mensagens.
 import { readFileSync, existsSync } from 'node:fs';
 
+// O motor carrega .env em src/config.js; o diagnostico deve ler a mesma configuracao.
+// process.loadEnvFile preserva variaveis ja definidas pelo ambiente de hospedagem.
+if (existsSync('.env')) process.loadEnvFile('.env');
+
 const files = ['index.js', 'src/localServer.js', 'src/painel.js', 'src/whatsapp/connection.js', 'src/whatsapp/sender.js'];
 const checks = files.map((path) => ({ item: path, ok: existsSync(path) }));
 const entrypoint = existsSync('index.js') ? readFileSync('index.js', 'utf8') : '';
