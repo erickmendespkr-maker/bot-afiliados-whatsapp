@@ -147,3 +147,17 @@ test('readiness fails when WhatsApp sender module is missing', () => {
   assert.equal(check(result, 'src/whatsapp/sender.js'), false);
   assert.equal(result.status, 1);
 });
+
+test('readiness fails when the actual panel module is missing', () => {
+  const result = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + '\\n', {}, ['src/painel.js']);
+  assert.equal(check(result, 'src/painel.js'), false);
+  assert.equal(check(result, 'painel possui autenticacao'), false);
+  assert.equal(check(result, 'rota do painel /painel/status'), false);
+  assert.equal(result.status, 1);
+});
+
+test('readiness fails when the WhatsApp connection module is missing', () => {
+  const result = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + '\\n', {}, ['src/whatsapp/connection.js']);
+  assert.equal(check(result, 'src/whatsapp/connection.js'), false);
+  assert.equal(result.status, 1);
+});
