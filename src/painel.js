@@ -945,6 +945,7 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
           .split(',').map((jid) => jid.trim()).filter(Boolean);
         return !config.dryRun && process.env.AUTORIZAR_ENVIO_EXTENSAO === 'sim' &&
           validos(confirmados) && validos(config.whatsapp.groupJids) &&
+          confirmados.length === config.whatsapp.groupJids.length &&
           config.whatsapp.groupJids.every((jid) => confirmados.includes(jid));
       })(),
       gruposOrigem: config.groupReader.sourceGroupNames.length,
