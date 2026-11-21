@@ -15,7 +15,18 @@ function runReadiness(envFile, overrides = {}) {
   try {
     for (const file of ['index.js', 'src/localServer.js', 'src/painel.js', 'src/whatsapp/connection.js', 'src/whatsapp/sender.js']) {
       mkdirSync(dirname(join(cwd, file)), { recursive: true });
-      writeFileSync(join(cwd, file), '');
+      const fixtures = {
+        'index.js': "from './src/localServer.js'\nstartLocalServer()",
+        'src/localServer.js': "from './painel.js'\ntratarRotaDoPainel(req, res\nsendDealToGroups(",
+        'src/painel.js': [
+          'export function autorizado(req)', 'getLatestQr', 'definirPausa',
+          ...['status', 'grupos', 'origens', 'destinos', 'qr', 'afiliados', 'operacao', 'simular-oferta', 'lista'].map((route) => "url === '/painel/" + route + "'"),
+          'painel_session=', 'HttpOnly', 'cookiePermitido', 'origemSegura',
+          "AUTORIZAR_ENVIO_PAINEL: 'nao'", "AUTORIZAR_ENVIO_WHATSAPP: 'nao'",
+          'simulacao: true, enviado: false',
+        ].join('\n'),
+      };
+      writeFileSync(join(cwd, file), fixtures[file] || '');
     }
     if (envFile) writeFileSync(join(cwd, '.env'), envFile);
     const clean = { ...process.env };
@@ -28,63 +39,73 @@ function runReadiness(envFile, overrides = {}) {
       cwd, env: { ...clean, ...overrides }, encoding: 'utf8', timeout: 10000,
     });
     assert.equal(result.error, undefined);
-    return result.stdout;
+    assert.equal(result.signal, null, 'diagnostic must exit normally');
+    return { output: result.stdout, status: result.status };
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }
 }
 
-function check(output, label) {
+function check(result, label) {
+  const output = result.output;
   const line = output.split('\n').find((item) => item.endsWith(' - ' + label));
   assert.ok(line, 'missing diagnostic: ' + label);
   return line.startsWith('OK - ');
 }
 
 test('readiness accepts valid group JIDs from .env without exposing IDs', () => {
-  const output = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + ',' + jidB + '\n');
-  assert.equal(check(output, 'destinos configurados com JIDs de grupo validos'), true);
-  assert.equal(output.includes(jidA), false);
-  assert.equal(output.includes(jidB), false);
+  const result = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + ',' + jidB + '\n');
+  assert.equal(check(result, 'destinos configurados com JIDs de grupo validos'), true);
+  assert.equal(result.output.includes(jidA), false);
+  assert.equal(result.output.includes(jidB), false);
+  assert.equal(result.status, 0, 'diagnostic exit status');
 });
 
 test('readiness rejects invalid configured group JIDs even with sending disabled', () => {
-  const output = runReadiness('WHATSAPP_GROUP_JIDS=not-a-group\n');
-  assert.equal(check(output, 'destinos configurados com JIDs de grupo validos'), false);
+  const result = runReadiness('WHATSAPP_GROUP_JIDS=not-a-group\n');
+  assert.equal(check(result, 'destinos configurados com JIDs de grupo validos'), false);
+  assert.equal(result.status, 1, 'diagnostic exit status');
 });
 
 test('readiness accepts legacy singular destination setting', () => {
-  const output = runReadiness('WHATSAPP_GROUP_JID=' + jidA + '\n');
-  assert.equal(check(output, 'destinos configurados com JIDs de grupo validos'), true);
+  const result = runReadiness('WHATSAPP_GROUP_JID=' + jidA + '\n');
+  assert.equal(check(result, 'destinos configurados com JIDs de grupo validos'), true);
+  assert.equal(result.status, 0, 'diagnostic exit status');
 });
 
 test('readiness requires exact confirmed destination set for enabled sending', () => {
-  const output = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + ',' + jidB + '\n' +
+  const result = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + ',' + jidB + '\n' +
     'GRUPOS_DESTINO_CONFIRMADOS=' + jidA + '\nAUTORIZAR_ENVIO_PAINEL=sim\n');
-  assert.equal(check(output, 'envio autorizado somente para conjunto exato de destinos configurados'), false);
+  assert.equal(check(result, 'envio autorizado somente para conjunto exato de destinos configurados'), false);
+  assert.equal(result.status, 1, 'diagnostic exit status');
 });
 
 test('hosting environment overrides .env values without exposing token', () => {
-  const output = runReadiness('PORT=4545\nPAINEL_TOKEN=secret-from-file\n', { PORT: '8888', PAINEL_TOKEN: '' });
-  assert.equal(check(output, 'token configurado para acesso remoto'), false);
-  assert.equal(output.includes('secret-from-file'), false);
+  const result = runReadiness('PORT=4545\nPAINEL_TOKEN=secret-from-file\n', { PORT: '8888', PAINEL_TOKEN: '' });
+  assert.equal(check(result, 'token configurado para acesso remoto'), false);
+  assert.equal(result.output.includes('secret-from-file'), false);
+  assert.equal(result.status, 1, 'diagnostic exit status');
 });
 
 test('readiness rejects duplicate configured and confirmed destinations', () => {
-  const output = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + ',' + jidA + '\n' +
+  const result = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + ',' + jidA + '\n' +
     'GRUPOS_DESTINO_CONFIRMADOS=' + jidA + ',' + jidA + '\n');
-  assert.equal(check(output, 'destinos configurados sem duplicatas'), false);
-  assert.equal(check(output, 'destinos confirmados sem duplicatas'), false);
+  assert.equal(check(result, 'destinos configurados sem duplicatas'), false);
+  assert.equal(check(result, 'destinos confirmados sem duplicatas'), false);
+  assert.equal(result.status, 1, 'diagnostic exit status');
 });
 
 test('readiness rejects extra confirmations even if all configured destinations are present', () => {
-  const output = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + '\n' +
+  const result = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + '\n' +
     'GRUPOS_DESTINO_CONFIRMADOS=' + jidA + ',' + jidB + '\nAUTORIZAR_ENVIO_WHATSAPP=sim\n');
-  assert.equal(check(output, 'envio autorizado somente para conjunto exato de destinos configurados'), false);
+  assert.equal(check(result, 'envio autorizado somente para conjunto exato de destinos configurados'), false);
+  assert.equal(result.status, 1, 'diagnostic exit status');
 });
 
 test('readiness flags active sending and never prints configured destinations', () => {
-  const output = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + '\n' +
+  const result = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + '\n' +
     'GRUPOS_DESTINO_CONFIRMADOS=' + jidA + '\nAUTORIZAR_ENVIO_PAINEL=sim\n');
-  assert.equal(check(output, 'envio real desabilitado por padrao'), false);
-  assert.equal(output.includes(jidA), false);
+  assert.equal(check(result, 'envio real desabilitado por padrao'), false);
+  assert.equal(result.output.includes(jidA), false);
+  assert.equal(result.status, 1, 'diagnostic exit status');
 });
