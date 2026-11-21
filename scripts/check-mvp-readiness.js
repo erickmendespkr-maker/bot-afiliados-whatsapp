@@ -56,7 +56,7 @@ const mesmosDestinos = destinosConfigurados.length > 0 &&
 checks.push({ item: 'envio autorizado somente para conjunto exato de destinos configurados', ok: !algumEnvioAtivo || mesmosDestinos });
 checks.push({ item: 'destinos configurados sem duplicatas', ok: new Set(destinosConfigurados).size === destinosConfigurados.length });
 // Validar tambem os destinos configurados, mesmo com envios desligados: evita diagnostico verde para JIDs invalidos.
-checks.push({ item: 'destinos configurados com JIDs de grupo validos', ok: destinosConfigurados.every((jid) => /^[0-9]+(?:-[0-9]+)?@g\\.us$/.test(jid)) });
+checks.push({ item: 'destinos configurados com JIDs de grupo validos', ok: destinosConfigurados.every((jid) => /^[0-9]+(?:-[0-9]+)?@g\.us$/.test(jid)) });
 // Um texto arbitrario nao comprova um grupo WhatsApp. Nunca imprimir os JIDs no diagnostico.
 checks.push({ item: 'destinos confirmados com JIDs de grupo validos', ok: destinosConfirmados.every((jid) => /^[0-9]+(?:-[0-9]+)?@g\.us$/.test(jid)) });
 if (hosted) {
