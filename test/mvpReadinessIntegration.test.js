@@ -161,3 +161,19 @@ test('readiness fails when the WhatsApp connection module is missing', () => {
   assert.equal(check(result, 'src/whatsapp/connection.js'), false);
   assert.equal(result.status, 1);
 });
+
+
+test('readiness rejects missing entrypoint even when other modules exist', () => {
+  const result = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + '\n', {}, ['index.js']);
+  assert.equal(check(result, 'index.js'), false);
+  assert.equal(check(result, 'index inicia servidor HTTP original'), false);
+  assert.equal(result.status, 1);
+});
+
+test('readiness rejects enabled sending when no destinations are configured', () => {
+  const result = runReadiness('AUTORIZAR_ENVIO_WHATSAPP=sim\nGRUPOS_DESTINO_CONFIRMADOS=' + jidA + '\n');
+  assert.equal(check(result, 'ao menos um destino configurado para publicacao'), false);
+  assert.equal(check(result, 'envio autorizado somente para conjunto exato de destinos configurados'), false);
+  assert.equal(result.output.includes(jidA), false);
+  assert.equal(result.status, 1);
+});
