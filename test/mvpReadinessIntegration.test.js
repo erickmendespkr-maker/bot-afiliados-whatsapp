@@ -68,3 +68,23 @@ test('hosting environment overrides .env values without exposing token', () => {
   assert.equal(check(output, 'token configurado para acesso remoto'), false);
   assert.equal(output.includes('secret-from-file'), false);
 });
+
+test('readiness rejects duplicate configured and confirmed destinations', () => {
+  const output = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + ',' + jidA + '\n' +
+    'GRUPOS_DESTINO_CONFIRMADOS=' + jidA + ',' + jidA + '\n');
+  assert.equal(check(output, 'destinos configurados sem duplicatas'), false);
+  assert.equal(check(output, 'destinos confirmados sem duplicatas'), false);
+});
+
+test('readiness rejects extra confirmations even if all configured destinations are present', () => {
+  const output = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + '\n' +
+    'GRUPOS_DESTINO_CONFIRMADOS=' + jidA + ',' + jidB + '\nAUTORIZAR_ENVIO_WHATSAPP=sim\n');
+  assert.equal(check(output, 'envio autorizado somente para conjunto exato de destinos configurados'), false);
+});
+
+test('readiness flags active sending and never prints configured destinations', () => {
+  const output = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + '\n' +
+    'GRUPOS_DESTINO_CONFIRMADOS=' + jidA + '\nAUTORIZAR_ENVIO_PAINEL=sim\n');
+  assert.equal(check(output, 'envio real desabilitado por padrao'), false);
+  assert.equal(output.includes(jidA), false);
+});
