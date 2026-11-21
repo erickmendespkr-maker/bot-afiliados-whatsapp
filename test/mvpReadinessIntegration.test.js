@@ -109,3 +109,9 @@ test('readiness flags active sending and never prints configured destinations', 
   assert.equal(result.output.includes(jidA), false);
   assert.equal(result.status, 1, 'diagnostic exit status');
 });
+
+test('readiness rejects missing publication destinations without enabling sending', () => {
+  const result = runReadiness('AUTORIZAR_ENVIO_PAINEL=nao\n');
+  assert.equal(check(result, 'ao menos um destino configurado para publicacao'), false);
+  assert.equal(result.status, 1, 'diagnostic exit status');
+});
