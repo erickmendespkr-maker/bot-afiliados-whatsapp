@@ -115,3 +115,20 @@ test('readiness rejects missing publication destinations without enabling sendin
   assert.equal(check(result, 'ao menos um destino configurado para publicacao'), false);
   assert.equal(result.status, 1, 'diagnostic exit status');
 });
+
+
+test('readiness rejects invalid confirmed group JIDs even when sending is disabled', () => {
+  const result = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + '\n' +
+    'GRUPOS_DESTINO_CONFIRMADOS=not-a-group\nAUTORIZAR_ENVIO_PAINEL=nao\n');
+  assert.equal(check(result, 'destinos confirmados com JIDs de grupo validos'), false);
+  assert.equal(result.output.includes('not-a-group'), false);
+  assert.equal(result.status, 1, 'diagnostic exit status');
+});
+
+test('readiness requires a private token for hosted panel even with sending disabled', () => {
+  const result = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + '\n', {
+    PORT: '8080', PAINEL_TOKEN: '', AUTORIZAR_ENVIO_PAINEL: 'nao',
+  });
+  assert.equal(check(result, 'token configurado para acesso remoto'), false);
+  assert.equal(result.status, 1, 'diagnostic exit status');
+});
