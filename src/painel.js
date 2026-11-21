@@ -1050,11 +1050,13 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
       // confirmados nao deve herdar permissao de envio manual ou automatico.
       setEnvValues({
         WHATSAPP_GROUP_JIDS: jids.join(','),
+        GRUPOS_DESTINO_CONFIRMADOS: '',
         AUTORIZAR_ENVIO_EXTENSAO: 'nao',
         AUTORIZAR_ENVIO_PAINEL: 'nao',
         AUTORIZAR_ENVIO_WHATSAPP: 'nao',
       });
       config.whatsapp.groupJids.splice(0, config.whatsapp.groupJids.length, ...jids);
+      process.env.GRUPOS_DESTINO_CONFIRMADOS = '';
       process.env.AUTORIZAR_ENVIO_EXTENSAO = 'nao';
       process.env.AUTORIZAR_ENVIO_PAINEL = 'nao';
       process.env.AUTORIZAR_ENVIO_WHATSAPP = 'nao';
