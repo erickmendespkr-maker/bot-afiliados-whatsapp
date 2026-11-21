@@ -10,10 +10,11 @@ const script = join(dirname(dirname(fileURLToPath(import.meta.url))), 'scripts/c
 const jidA = '120363000001@g.us';
 const jidB = '120363000002@g.us';
 
-function runReadiness(envFile, overrides = {}) {
+function runReadiness(envFile, overrides = {}, omittedFiles = []) {
   const cwd = mkdtempSync(join(tmpdir(), 'mvp-readiness-'));
   try {
     for (const file of ['index.js', 'src/localServer.js', 'src/painel.js', 'src/whatsapp/connection.js', 'src/whatsapp/sender.js']) {
+      if (omittedFiles.includes(file)) continue;
       mkdirSync(dirname(join(cwd, file)), { recursive: true });
       const fixtures = {
         'index.js': "from './src/localServer.js'\nstartLocalServer()",
@@ -131,4 +132,18 @@ test('readiness requires a private token for hosted panel even with sending disa
   });
   assert.equal(check(result, 'token configurado para acesso remoto'), false);
   assert.equal(result.status, 1, 'diagnostic exit status');
+});
+
+// A configuracao nao deve mascarar a ausencia de componentes reais do motor.
+test('readiness fails when the real HTTP server integration is missing', () => {
+  const result = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + '\n', {}, ['src/localServer.js']);
+  assert.equal(check(result, 'src/localServer.js'), false);
+  assert.equal(check(result, 'servidor importa painel real'), false);
+  assert.equal(result.status, 1);
+});
+
+test('readiness fails when WhatsApp sender module is missing', () => {
+  const result = runReadiness('WHATSAPP_GROUP_JIDS=' + jidA + '\n', {}, ['src/whatsapp/sender.js']);
+  assert.equal(check(result, 'src/whatsapp/sender.js'), false);
+  assert.equal(result.status, 1);
 });
