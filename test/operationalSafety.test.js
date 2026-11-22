@@ -45,3 +45,19 @@ test('QR expira depois de 60 segundos', () => {
     setLatestQr(null);
   }
 });
+
+test('QR permanece valido antes do limite e expira exatamente aos 60 segundos', () => {
+  const original = Date.now;
+  let now = 1000000;
+  try {
+    Date.now = () => now;
+    setLatestQr('qr-limite');
+    now += 59999;
+    assert.equal(getLatestQr(), 'qr-limite');
+    now += 1;
+    assert.equal(getLatestQr(), null);
+  } finally {
+    Date.now = original;
+    setLatestQr(null);
+  }
+});
