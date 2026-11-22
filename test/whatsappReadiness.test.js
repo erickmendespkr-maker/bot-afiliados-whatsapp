@@ -78,4 +78,8 @@ test('configuracao valida nao significa autorizacao de envio', () => {
   assert.equal(confirmed.output.prontoParaEnvioWhatsApp, false);
   const authorized = check([...base, 'GRUPOS_DESTINO_CONFIRMADOS=123456@g.us', 'AUTORIZAR_ENVIO_PAINEL=sim']);
   assert.equal(authorized.output.prontoParaEnvioWhatsApp, true);
+  assert.equal(authorized.output.configuracaoProntaParaEnvioWhatsApp, true);
+  assert.equal(authorized.output.sessaoWhatsAppVerificada, false);
+  assert.equal(authorized.output.envioOperacionalVerificado, false);
+  assert.ok(authorized.output.warnings.some(w => w.includes('nao verificadas')));
 });
