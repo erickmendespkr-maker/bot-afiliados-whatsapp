@@ -1359,7 +1359,10 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
               process.env.AUTORIZAR_ENVIO_PAINEL !== 'sim' ||
               process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim' ||
               autorizadosAgora.size !== config.whatsapp.groupJids.length ||
-              !config.whatsapp.groupJids.every((destino) => autorizadosAgora.has(destino))) {
+              new Set(config.whatsapp.groupJids).size !== config.whatsapp.groupJids.length ||
+              ![...autorizadosAgora].every((destino) => /^[0-9]+(?:-[0-9]+)?@g\.us$/.test(destino)) ||
+              !config.whatsapp.groupJids.every((destino) =>
+                /^[0-9]+(?:-[0-9]+)?@g\.us$/.test(destino) && autorizadosAgora.has(destino))) {
             break;
           }
           try {
