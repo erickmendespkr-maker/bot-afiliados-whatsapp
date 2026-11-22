@@ -255,7 +255,17 @@ export function startLocalServer() {
       return;
     }
 
-    if (req.method === 'POST' && new URL(req.url, 'http://localhost').pathname === '/post') {
+    // URLs malformadas nao podem lancar excecao dentro do callback HTTP.
+    // Node nao captura automaticamente erros sincronos desse callback.
+    let pathname;
+    try {
+      pathname = new URL(req.url, 'http://localhost').pathname;
+    } catch {
+      sendJson(res, 400, { ok: false, error: 'URL da requisicao invalida.' });
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/post') {
       if (!autorizado(req)) {
         sendJson(res, 401, { ok: false, error: 'Token do painel obrigatório para publicar ofertas.' });
         return;
