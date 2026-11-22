@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+if (existsSync('.env')) process.loadEnvFile('.env');
 // Diagnostico somente leitura: nao conecta WhatsApp nem envia ofertas.
 // Execute: node scripts/check-whatsapp-readiness.js
 const e = process.env;
