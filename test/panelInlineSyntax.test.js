@@ -9,7 +9,7 @@ test('scripts inline do painel e login possuem JavaScript valido', () => {
   const source = readFileSync(new URL('../src/painel.js', import.meta.url), 'utf8');
   const pages = [
     ['login', source.match(/const PAGINA_SENHA_BASE = `([\s\S]*?)`;\s*export const PAGINA_HTML/), true],
-    ['painel', source.match(/export const PAGINA_HTML = `([\s\S]*?)`;\s*(?:const |function |export )/), false],
+    ['painel', source.match(/export const PAGINA_HTML = `([\s\S]*?<\/html>)`;/), false],
   ];
   for (const [name, match, login] of pages) {
     assert.ok(match, 'HTML da pagina nao encontrado: ' + name);
