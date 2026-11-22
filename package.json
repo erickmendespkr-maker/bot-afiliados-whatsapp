@@ -20,7 +20,8 @@
     "start": "node index.js",
     "dry-run": "node index.js --dry-run",
     "test": "node --test test/*.test.js",
-    "check:mvp": "node scripts/check-mvp-readiness.js"
+    "check:mvp": "node scripts/check-mvp-readiness.js",
+    "check:whatsapp": "node scripts/check-whatsapp-readiness.js"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^7.0.0-rc13",
