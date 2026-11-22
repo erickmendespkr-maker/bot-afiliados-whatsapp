@@ -6,6 +6,6 @@ export function setLatestQr(qr) {
   expiraEm = qr ? Date.now() + 60000 : 0;
 }
 export function getLatestQr() {
-  if (!qrAtual || Date.now() > expiraEm) return null;
+  if (!qrAtual || Date.now() >= expiraEm) return null;
   return qrAtual;
 }
