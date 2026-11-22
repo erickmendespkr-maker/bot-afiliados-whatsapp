@@ -1346,7 +1346,7 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
         }
 
         const caminho = caminhoDaImagem(id);
-        const sock = await waitForConnection();
+        const sock = await waitForConnection(30000);
         let enviados = 0;
         const totalDestinos = config.whatsapp.groupJids.length;
 
@@ -1395,6 +1395,10 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
         }
       })
       .catch((err) => {
+        if (err.code === 'WHATSAPP_CONNECTION_TIMEOUT') {
+          sendJson(res, 503, { ok: false, error: 'WhatsApp desconectado. Conecte pelo QR Code e tente novamente.' });
+          return;
+        }
         logger.error(`Painel: erro inesperado na publicacao - ${describeError(err)}`);
         sendJson(res, 500, { ok: false, error: 'Falha interna ao processar a publicacao. Consulte o log do servidor.' });
       });
