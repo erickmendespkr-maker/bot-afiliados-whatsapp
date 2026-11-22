@@ -40,9 +40,22 @@ export function getSocket() {
   return currentSocket;
 }
 
-export function waitForConnection() {
+export function waitForConnection(timeoutMs = 0) {
   if (currentSocket) return Promise.resolve(currentSocket);
-  return new Promise((resolve) => readyWaiters.push(resolve));
+  return new Promise((resolve, reject) => {
+    let timer;
+    const waiter = (sock) => {
+      if (timer) clearTimeout(timer);
+      resolve(sock);
+    };
+    readyWaiters.push(waiter);
+    if (timeoutMs > 0) {
+      timer = setTimeout(() => {
+        readyWaiters = readyWaiters.filter((entry) => entry !== waiter);
+        reject(Object.assign(new Error('WhatsApp nao conectou dentro do prazo'), { code: 'WHATSAPP_CONNECTION_TIMEOUT' }));
+      }, timeoutMs);
+    }
+  });
 }
 
 // Diferente de waitForConnection (resolve UMA vez): isso chama o callback a
