@@ -151,7 +151,7 @@ async function handlePost(req, res) {
   }
 
   try {
-    await waitForConnection();
+    await waitForConnection(30000);
     // A operacao pode ter sido pausada enquanto a conexao era aguardada.
     if (estaPausado()) {
       sendJson(res, 409, { ok: false, error: 'Operacao pausada: envio pela extensao bloqueado.' });
@@ -176,6 +176,10 @@ async function handlePost(req, res) {
       sendJson(res, 500, { ok: false, error: 'Falha ao enviar pro WhatsApp' });
     }
   } catch (err) {
+    if (err.code === 'WHATSAPP_CONNECTION_TIMEOUT') {
+      sendJson(res, 503, { ok: false, error: 'WhatsApp desconectado. Tente novamente apos conectar pelo QR Code.' });
+      return;
+    }
     logger.error(`Extensao: erro ao enviar - ${describeError(err)}`);
     // Nao retornar detalhes internos do provedor/WhatsApp ao cliente HTTP.
     // O diagnostico completo permanece apenas no log do servidor.
