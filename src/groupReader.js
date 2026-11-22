@@ -685,6 +685,22 @@ async function processarMensagemDeGrupo(sock, msg, nomeGrupo) {
     return;
   }
 
+  // Pedidos de aprovacao tambem sao envios reais. Sem autorizacao explicita,
+  // a oferta continua disponivel para revisao no painel, sem mandar DM.
+  const destinosConfirmados = (process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
+    .split(',').map((jid) => jid.trim()).filter(Boolean);
+  const destinosConfigurados = config.whatsapp.groupJids;
+  const destinosAutorizados = destinosConfigurados.length > 0 &&
+    destinosConfirmados.length === destinosConfigurados.length &&
+    new Set(destinosConfirmados).size === destinosConfirmados.length &&
+    destinosConfigurados.every((jid) => /^\\d+(?:-\\d+)?@g\\.us$/.test(jid) && destinosConfirmados.includes(jid));
+  if (config.dryRun || process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim' || !destinosAutorizados) {
+    logger.warn('Leitor de grupos: pedido de aprovacao por WhatsApp bloqueado; revise a oferta no painel.');
+    pendentes.delete(id);
+    markMessageProcessed(remoteJid, messageId);
+    return;
+  }
+
   const selfJid = `${numero}@s.whatsapp.net`;
   try {
     await sock.sendMessage(selfJid, {
