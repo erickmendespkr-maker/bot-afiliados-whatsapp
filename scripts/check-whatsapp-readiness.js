@@ -27,6 +27,12 @@ const sources = {
 };
 if (!Object.values(sources).some(Boolean)) problems.push('Nenhuma fonte de afiliados configurada');
 const destinosConfirmados = valid(destinations) && valid(confirmed) && destinations.length === confirmed.length && destinations.every(jid => confirmed.includes(jid));
-const prontoParaEnvioWhatsApp = ['whatsapp', 'ambos'].includes(mode) && problems.length === 0 && destinosConfirmados && e.AUTORIZAR_ENVIO_PAINEL === 'sim';
-console.log(JSON.stringify({ ok: problems.length === 0, prontoParaEnvioWhatsApp, destinosConfirmados, destino: mode, plataformas: Object.keys(sources).filter(k => sources[k]), totalGruposDestino: destinations.length, problems, warnings }, null, 2));
+const configuracaoProntaParaEnvioWhatsApp = ['whatsapp', 'ambos'].includes(mode) && problems.length === 0 && destinosConfirmados && e.AUTORIZAR_ENVIO_PAINEL === 'sim';
+// Diagnostico offline nao pode confirmar socket conectado, sessao persistida ou entrega.
+// Manter o campo antigo por compatibilidade, mas expor claramente seu escopo.
+const prontoParaEnvioWhatsApp = configuracaoProntaParaEnvioWhatsApp;
+const sessaoWhatsAppVerificada = false;
+const envioOperacionalVerificado = false;
+if (configuracaoProntaParaEnvioWhatsApp) warnings.push('Configuracao pronta, mas sessao WhatsApp e entrega real nao verificadas por este diagnostico offline');
+console.log(JSON.stringify({ ok: problems.length === 0, prontoParaEnvioWhatsApp, configuracaoProntaParaEnvioWhatsApp, sessaoWhatsAppVerificada, envioOperacionalVerificado, destinosConfirmados, destino: mode, plataformas: Object.keys(sources).filter(k => sources[k]), totalGruposDestino: destinations.length, problems, warnings }, null, 2));
 if (problems.length) process.exitCode = 1;
