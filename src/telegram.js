@@ -96,6 +96,14 @@ export async function verificarTelegram() {
 // Manda a promocao pro canal. Se tiver imagem, vai como foto com legenda -
 // igualzinho ao formato que ja era postado no WhatsApp.
 export async function enviarPromocaoTelegram(texto, imagemBuffer) {
+  // Toda publicacao (inclusive avisos de aprovacao) exige autorizacao separada.
+  // A existencia de um token de bot nao constitui permissao para disparos.
+  const destinoConfirmado = (process.env.TELEGRAM_CANAL_CONFIRMADO || '').trim();
+  if (config.dryRun || process.env.AUTORIZAR_ENVIO_TELEGRAM !== 'sim' ||
+      !config.telegram.enabled || !destinoConfirmado ||
+      destinoConfirmado !== config.telegram.chatId) {
+    throw new Error('Envio Telegram bloqueado: autorizacao explicita e canal confirmado obrigatorios.');
+  }
   // O Telegram corta legenda de foto em 1024 caracteres. Promocao quase
   // nunca passa disso, mas se passar, manda como texto pra nao perder nada.
   if (imagemBuffer && texto.length <= 1024) {
