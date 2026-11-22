@@ -60,3 +60,22 @@ test('diagnostico rejeita destinos duplicados', () => {
   assert.equal(status, 1);
   assert.ok(output.problems.some(p => p.includes('duplicados')));
 });
+
+test('configuracao valida nao significa autorizacao de envio', () => {
+  const base = [
+    'DESTINO_POSTAGEM=whatsapp',
+    'PAINEL_TOKEN=teste',
+    'SHOPEE_APP_ID=123',
+    'SHOPEE_APP_SECRET=teste',
+    'WHATSAPP_GROUP_JIDS=123456@g.us'
+  ];
+  const pending = check(base);
+  assert.equal(pending.status, 0);
+  assert.equal(pending.output.ok, true);
+  assert.equal(pending.output.prontoParaEnvioWhatsApp, false);
+  const confirmed = check([...base, 'GRUPOS_DESTINO_CONFIRMADOS=123456@g.us']);
+  assert.equal(confirmed.output.destinosConfirmados, true);
+  assert.equal(confirmed.output.prontoParaEnvioWhatsApp, false);
+  const authorized = check([...base, 'GRUPOS_DESTINO_CONFIRMADOS=123456@g.us', 'AUTORIZAR_ENVIO_PAINEL=sim']);
+  assert.equal(authorized.output.prontoParaEnvioWhatsApp, true);
+});
