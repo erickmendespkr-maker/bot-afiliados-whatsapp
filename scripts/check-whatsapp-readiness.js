@@ -26,5 +26,7 @@ const sources = {
   amazon: Boolean(e.AMAZON_CREATORS_CLIENT_ID && e.AMAZON_CREATORS_CLIENT_SECRET && e.AMAZON_ASSOCIATE_TAG)
 };
 if (!Object.values(sources).some(Boolean)) problems.push('Nenhuma fonte de afiliados configurada');
-console.log(JSON.stringify({ ok: problems.length === 0, destino: mode, plataformas: Object.keys(sources).filter(k => sources[k]), totalGruposDestino: destinations.length, problems, warnings }, null, 2));
+const destinosConfirmados = valid(destinations) && valid(confirmed) && destinations.length === confirmed.length && destinations.every(jid => confirmed.includes(jid));
+const prontoParaEnvioWhatsApp = ['whatsapp', 'ambos'].includes(mode) && problems.length === 0 && destinosConfirmados && e.AUTORIZAR_ENVIO_PAINEL === 'sim';
+console.log(JSON.stringify({ ok: problems.length === 0, prontoParaEnvioWhatsApp, destinosConfirmados, destino: mode, plataformas: Object.keys(sources).filter(k => sources[k]), totalGruposDestino: destinations.length, problems, warnings }, null, 2));
 if (problems.length) process.exitCode = 1;
