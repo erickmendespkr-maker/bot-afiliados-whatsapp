@@ -439,8 +439,15 @@ async function postarNoWhatsapp(sock, texto, imagemBuffer) {
   }
   for (const jid of destinos) {
     // A pausa e a autorizacao podem ser revogadas enquanto a fila aguarda.
-    if (estaPausado() || process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim' ||
-        (process.env.GRUPOS_DESTINO_CONFIRMADOS || '').split(',').map((s) => s.trim()).filter(Boolean).join(',') !== confirmados.join(',')) {
+    const confirmadosAtuais = (process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
+      .split(',').map((s) => s.trim()).filter(Boolean);
+    const destinosAtuais = config.whatsapp.groupJids;
+    if (config.dryRun || estaPausado() || process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim' ||
+        !validos(confirmadosAtuais) || !validos(destinosAtuais) ||
+        destinosAtuais.length !== destinos.length ||
+        !destinosAtuais.every((destino) => destinos.includes(destino)) ||
+        destinosAtuais.length !== confirmadosAtuais.length ||
+        !destinosAtuais.every((destino) => confirmadosAtuais.includes(destino))) {
       logger.warn('Leitor de grupos: envio interrompido por revogacao de autorizacao ou pausa.');
       return ok;
     }
