@@ -106,6 +106,22 @@ async function handlePost(req, res) {
     return;
   }
 
+  // A extensao e um ponto de entrada HTTP: nao aceitar esquemas executaveis,
+  // URLs com credenciais embutidas ou enderecos sem hostname antes do conversor.
+  // O motor de afiliados permanece intacto.
+  let urlProduto;
+  try {
+    urlProduto = new URL(productUrl);
+  } catch {
+    sendJson(res, 400, { ok: false, error: 'URL do produto invalida.' });
+    return;
+  }
+  if (!['http:', 'https:'].includes(urlProduto.protocol) ||
+      !urlProduto.hostname || urlProduto.username || urlProduto.password) {
+    sendJson(res, 400, { ok: false, error: 'URL do produto deve ser HTTP(S), sem credenciais.' });
+    return;
+  }
+
   let affiliateLink;
   try {
     affiliateLink = buildAffiliateLink(source, productUrl);
