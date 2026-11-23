@@ -1,5 +1,6 @@
 import { downloadMediaMessage } from '@whiskeysockets/baileys';
 import { config } from './config.js';
+import { estaPausado } from './operationControl.js';
 import { logger, describeError } from './logger.js';
 import { onConnect } from './whatsapp/connection.js';
 import { resolveGroupJidsByName } from './whatsapp/groupResolver.js';
@@ -423,16 +424,25 @@ async function postarNoWhatsapp(sock, texto, imagemBuffer) {
   // Este caminho envia diretamente pelo socket (imagem em Buffer) e nao passa
   // pelo sender compartilhado. Aplicar aqui a mesma trava global, sem
   // modificar a conversao, a fila nem a logica de envio existente.
-  const confirmados = new Set((process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
-    .split(',').map((jid) => jid.trim()).filter(Boolean));
-  if (config.dryRun || process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim') {
-    logger.warn('Leitor de grupos: envio WhatsApp bloqueado (sem autorizacao global).');
+  const destinos = config.whatsapp.groupJids;
+  const confirmados = (process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
+    .split(',').map((jid) => jid.trim()).filter(Boolean);
+  const validos = (lista) => lista.length > 0 &&
+    new Set(lista).size === lista.length &&
+    lista.every((jid) => /^\\d+(?:-\\d+)?@g\\.us$/.test(jid));
+  if (config.dryRun || estaPausado() || process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim' ||
+      !validos(destinos) || !validos(confirmados) ||
+      destinos.length !== confirmados.length ||
+      !destinos.every((jid) => confirmados.includes(jid))) {
+    logger.warn('Leitor de grupos: envio bloqueado (pausa, autorizacao ou destinos nao confirmados).');
     return false;
   }
-  for (const jid of config.whatsapp.groupJids) {
-    if (!/^\d+(?:-\d+)?@g\.us$/.test(String(jid)) || !confirmados.has(jid)) {
-      logger.warn('Leitor de grupos: destino nao confirmado; envio bloqueado.');
-      continue;
+  for (const jid of destinos) {
+    // A pausa e a autorizacao podem ser revogadas enquanto a fila aguarda.
+    if (estaPausado() || process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim' ||
+        (process.env.GRUPOS_DESTINO_CONFIRMADOS || '').split(',').map((s) => s.trim()).filter(Boolean).join(',') !== confirmados.join(',')) {
+      logger.warn('Leitor de grupos: envio interrompido por revogacao de autorizacao ou pausa.');
+      return ok;
     }
     try {
       if (imagemBuffer) {
