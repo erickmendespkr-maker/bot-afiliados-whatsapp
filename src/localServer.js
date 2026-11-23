@@ -266,7 +266,7 @@ export function startLocalServer() {
     }
 
     if (req.method === 'POST' && pathname === '/post') {
-      if (!autorizado(req)) {
+      if (!config.painel.token || req.headers['x-painel-token'] !== config.painel.token || !autorizado(req)) {
         sendJson(res, 401, { ok: false, error: 'Token do painel obrigatório para publicar ofertas.' });
         return;
       }
