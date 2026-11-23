@@ -122,6 +122,23 @@ async function handlePost(req, res) {
     return;
   }
 
+  // A imagem pode ser buscada pelo motor: rejeitar protocolos locais/executaveis
+  // e URLs com credenciais antes de delegar ao envio existente.
+  if (imageUrl) {
+    let urlImagem;
+    try {
+      urlImagem = new URL(imageUrl);
+    } catch {
+      sendJson(res, 400, { ok: false, error: 'URL da imagem invalida.' });
+      return;
+    }
+    if (!['http:', 'https:'].includes(urlImagem.protocol) ||
+        !urlImagem.hostname || urlImagem.username || urlImagem.password) {
+      sendJson(res, 400, { ok: false, error: 'URL da imagem deve ser HTTP(S), sem credenciais.' });
+      return;
+    }
+  }
+
   let affiliateLink;
   try {
     affiliateLink = buildAffiliateLink(source, productUrl);
