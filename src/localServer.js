@@ -93,6 +93,19 @@ async function handlePost(req, res) {
     return;
   }
 
+  // Rejeitar valores nao textuais antes de construir links e mensagens.
+  // Objetos/arrays JSON truthy passavam na checagem acima e podiam chegar
+  // aos conversores do motor com tipos inesperados.
+  const camposTexto = [source, productUrl, title, price];
+  if (!camposTexto.every((valor) => typeof valor === 'string' && valor.trim().length > 0) ||
+      !['mercadolivre', 'amazon'].includes(source) ||
+      productUrl.length > 4096 || title.length > 500 || price.length > 100 ||
+      [originalPrice, imageUrl, coupon].some((valor) =>
+        valor !== undefined && (typeof valor !== 'string' || valor.length > 4096))) {
+    sendJson(res, 400, { ok: false, error: 'Campos da oferta invalidos.' });
+    return;
+  }
+
   let affiliateLink;
   try {
     affiliateLink = buildAffiliateLink(source, productUrl);
