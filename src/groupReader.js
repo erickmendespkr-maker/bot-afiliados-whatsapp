@@ -429,7 +429,7 @@ async function postarNoWhatsapp(sock, texto, imagemBuffer) {
     .split(',').map((jid) => jid.trim()).filter(Boolean);
   const validos = (lista) => lista.length > 0 &&
     new Set(lista).size === lista.length &&
-    lista.every((jid) => /^\\d+(?:-\\d+)?@g\\.us$/.test(jid));
+    lista.every((jid) => /^\d+(?:-\d+)?@g\.us$/.test(jid));
   if (config.dryRun || estaPausado() || process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim' ||
       !validos(destinos) || !validos(confirmados) ||
       destinos.length !== confirmados.length ||
