@@ -27,3 +27,13 @@ test('envios pela extensao exigem autorizacao e destinos confirmados', () => {
   assert.match(server, /config\.dryRun/);
   assert.match(server, /estaPausado\(\)/);
 });
+
+
+test('painel dry-run nao exige credenciais nem inicia coleta automatica', () => {
+  const guard = index.indexOf("if (config.dryRun && process.env.PAINEL_NO_DRY_RUN === 'sim')", index.indexOf('startGroupReader();'));
+  assert.ok(guard > 0, 'guarda do painel-only deve existir apos inicializacao');
+  const remainder = index.slice(guard);
+  assert.match(remainder, /logger\.info\('Painel de configuracao ativo em modo teste; coleta e envios desabilitados\.'\);\s*return;/);
+  assert.ok(guard < index.indexOf('await runPollCycle()'), 'painel-only deve retornar antes da coleta');
+  assert.ok(guard < index.indexOf('if (config.dryRun) validateConfig()'), 'painel-only deve retornar antes da validacao de credenciais');
+});
