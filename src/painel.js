@@ -579,7 +579,8 @@ async function atualizarStatusMotor() {
       ' | Busca automática: ' + (d.buscaAutomatica ? 'ligada' : 'desligada') +
       ' | Aprovação manual: ' + (d.aprovacaoManual ? 'sim' : 'não') +
       ' | Modo: ' + (d.modoTeste ? 'SIMULAÇÃO (sem envios)' : 'real') +
-      ' | Extensão: ' + (d.envioExtensaoAutorizado ? 'destinos autorizados' : 'envio bloqueado');
+      ' | Extensão: ' + (d.envioExtensaoAutorizado ? 'destinos autorizados' : 'envio bloqueado') +
+      ' | Publicação: ' + (d.whatsappOperacional && d.envioExtensaoAutorizado ? 'condições iniciais atendidas; envio não testado' : 'não pronta');
   } catch {
     el.textContent = 'Não foi possível consultar o motor. Verifique a conexão.';
   }
@@ -933,6 +934,8 @@ export function tratarRotaDoPainel(req, res, sendJson, readJsonBody) {
     sendJson(res, 200, {
       ok: true,
       whatsappConectado: Boolean(getSocket()),
+      // Indicador operacional separado: permissao configurada nao comprova sessao ativa.
+      whatsappOperacional: Boolean(getSocket()) && !estaPausado() && !config.dryRun,
       pausado: estaPausado(),
       modoTeste: config.dryRun,
       // Mostrar autorizacao somente quando os destinos passam pelas mesmas
