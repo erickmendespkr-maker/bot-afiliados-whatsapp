@@ -64,6 +64,14 @@ async function main() {
     startGroupReader();
   }
 
+  // Modo de configuracao web: nao executar coleta nem exigir credenciais
+  // enquanto o operador prepara a instalacao em dry-run. O servidor HTTP
+  // ja foi iniciado acima e permanece ativo, sem conexao WhatsApp.
+  if (config.dryRun && process.env.PAINEL_NO_DRY_RUN === 'sim') {
+    logger.info('Painel de configuracao ativo em modo teste; coleta e envios desabilitados.');
+    return;
+  }
+
   if (!config.behavior.buscaAutomaticaAtiva) {
     logger.info(
       'Busca automatica de ofertas desativada (so copiando promocao dos grupos de origem). ' +
