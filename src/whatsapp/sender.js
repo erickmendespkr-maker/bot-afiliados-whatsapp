@@ -1,4 +1,5 @@
 import { waitForConnection } from './connection.js';
+import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { estaPausado } from '../operationControl.js';
 
@@ -6,14 +7,14 @@ export async function sendDealMessage(groupJid, { text, imageUrl }) {
   // Ultima barreira compartilhada por agendador, leitor de grupos e painel.
   // Nunca confiar somente na autorizacao da rota HTTP: processos internos
   // tambem chamam este sender. Exigir opt-in e JID explicitamente confirmado.
-  if (estaPausado()) {
-    logger.warn('Envio WhatsApp bloqueado: operacao pausada.');
+  if (config.dryRun || estaPausado()) {
+    logger.warn('Envio WhatsApp bloqueado: modo teste ou operacao pausada.');
     return false;
   }
   const confirmados = new Set((process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
     .split(',').map((jid) => jid.trim()).filter(Boolean));
   if (process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim' ||
-      !/^\d+@g\.us$/.test(String(groupJid)) ||
+      !/^\d+(?:-\d+)?@g\.us$/.test(String(groupJid)) ||
       !confirmados.has(groupJid)) {
     logger.warn('Envio WhatsApp bloqueado: autorizacao global ou grupo confirmado ausente.');
     return false;
@@ -24,7 +25,7 @@ export async function sendDealMessage(groupJid, { text, imageUrl }) {
   // do envio para respeitar uma pausa ou revogacao feita nesse intervalo.
   const confirmadosAgora = new Set((process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
     .split(',').map((jid) => jid.trim()).filter(Boolean));
-  if (estaPausado() ||
+  if (config.dryRun || estaPausado() ||
       process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim' ||
       !confirmadosAgora.has(groupJid)) {
     logger.warn('Envio WhatsApp cancelado: pausa ou autorizacao alterada durante a espera.');
