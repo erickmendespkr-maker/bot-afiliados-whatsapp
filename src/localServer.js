@@ -169,13 +169,14 @@ async function handlePost(req, res) {
   // O token do painel autentica o operador, mas nao autoriza disparos por si so.
   const confirmados = (process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
     .split(',').map((jid) => jid.trim()).filter(Boolean);
-  if (config.dryRun || process.env.AUTORIZAR_ENVIO_EXTENSAO !== 'sim' ||
+  if (config.dryRun || process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim' ||
+      process.env.AUTORIZAR_ENVIO_EXTENSAO !== 'sim' ||
       !destinosValidos(confirmados) || !destinosValidos(config.whatsapp.groupJids) ||
       confirmados.length !== config.whatsapp.groupJids.length ||
       !config.whatsapp.groupJids.every((jid) => confirmados.includes(jid))) {
     sendJson(res, 403, {
       ok: false,
-      error: 'Envio bloqueado: configure AUTORIZAR_ENVIO_EXTENSAO=sim e GRUPOS_DESTINO_CONFIRMADOS com todos os destinos autorizados.'
+      error: 'Envio bloqueado: configure AUTORIZAR_ENVIO_WHATSAPP=sim, AUTORIZAR_ENVIO_EXTENSAO=sim e GRUPOS_DESTINO_CONFIRMADOS com todos os destinos autorizados.'
     });
     return;
   }
@@ -198,7 +199,8 @@ async function handlePost(req, res) {
     // Revalidar imediatamente antes de delegar ao motor de envio original.
     const destinosConfirmadosAgora = (process.env.GRUPOS_DESTINO_CONFIRMADOS || '')
       .split(',').map((jid) => jid.trim()).filter(Boolean);
-    if (config.dryRun || process.env.AUTORIZAR_ENVIO_EXTENSAO !== 'sim' ||
+    if (config.dryRun || process.env.AUTORIZAR_ENVIO_WHATSAPP !== 'sim' ||
+      process.env.AUTORIZAR_ENVIO_EXTENSAO !== 'sim' ||
         !destinosValidos(destinosConfirmadosAgora) || !destinosValidos(config.whatsapp.groupJids) ||
         destinosConfirmadosAgora.length !== config.whatsapp.groupJids.length ||
         !config.whatsapp.groupJids.every((jid) => destinosConfirmadosAgora.includes(jid))) {
