@@ -122,21 +122,12 @@ async function handlePost(req, res) {
     return;
   }
 
-  // A imagem pode ser buscada pelo motor: rejeitar protocolos locais/executaveis
-  // e URLs com credenciais antes de delegar ao envio existente.
+  // O motor baixa imagens remotas. Ate existir um transporte com validacao
+  // de DNS, IP e cada redirecionamento, a entrada HTTP aceita somente texto.
+  // Nao altera a coleta nem o envio de imagens pelo motor original.
   if (imageUrl) {
-    let urlImagem;
-    try {
-      urlImagem = new URL(imageUrl);
-    } catch {
-      sendJson(res, 400, { ok: false, error: 'URL da imagem invalida.' });
-      return;
-    }
-    if (!['http:', 'https:'].includes(urlImagem.protocol) ||
-        !urlImagem.hostname || urlImagem.username || urlImagem.password) {
-      sendJson(res, 400, { ok: false, error: 'URL da imagem deve ser HTTP(S), sem credenciais.' });
-      return;
-    }
+    sendJson(res, 400, { ok: false, error: 'Imagem remota temporariamente bloqueada nesta rota. Envie a oferta sem imageUrl.' });
+    return;
   }
 
   let affiliateLink;
@@ -214,7 +205,7 @@ async function handlePost(req, res) {
       sendJson(res, 403, { ok: false, error: 'Autorizacao de envio ou confirmacao dos destinos revogada.' });
       return;
     }
-    const ok = await sendDealToGroups(config.whatsapp.groupJids, { text: message, imageUrl: imageUrl || undefined });
+    const ok = await sendDealToGroups(config.whatsapp.groupJids, { text: message });
     if (ok) {
       logger.info(`Extensao: postado "${title}" (${source})`);
       sendJson(res, 200, { ok: true });
